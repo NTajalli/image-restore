@@ -23,7 +23,6 @@ def train(generator, discriminator, vintage_dataloader, original_dataloader, opt
 
             # Generate a batch of images
             gen_imgs = generator(vintage_imgs)
-            print(f"Generator output shape: {gen_imgs.shape}")
             
 
             # Loss measures generator's ability to fool the discriminator
