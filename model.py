@@ -29,17 +29,10 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.model = nn.Sequential(
-            # Assuming input images are RGB, so in_channels = 3
             nn.Conv2d(3, 128, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2, inplace=True),
 
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Upsample(scale_factor=2),
             nn.Conv2d(128, 64, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, inplace=True),
@@ -50,6 +43,7 @@ class Generator(nn.Module):
 
     def forward(self, img):
         return self.model(img)
+
 
 class Discriminator(nn.Module):
     def __init__(self):
