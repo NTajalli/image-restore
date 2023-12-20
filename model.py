@@ -72,6 +72,7 @@ class Discriminator(nn.Module):
 
         # Dynamically determine the flatten size
         self.flatten_size = self.determine_flatten_size()
+        print(f"Initialized flatten size: {self.flatten_size}")
 
         self.adv_layer = nn.Sequential(
             nn.Linear(self.flatten_size, 1),
@@ -82,13 +83,18 @@ class Discriminator(nn.Module):
         with torch.no_grad():
             dummy_input = torch.zeros(1, 3, 256, 256)
             dummy_output = self.model(dummy_input)
-            return int(np.prod(dummy_output.size()[1:]))
+            print(f"Dummy output shape (conv layers): {dummy_output.shape}")
+            flatten_size = int(np.prod(dummy_output.size()[1:]))
+            print(f"Calculated flatten size: {flatten_size}")
+            return flatten_size
 
     def forward(self, img):
+        print(f"Input shape (forward): {img.shape}")
         out = self.model(img)
+        print(f"Shape after conv layers (forward): {out.shape}")
         out = out.view(out.size(0), -1)
+        print(f"Shape after flattening (forward): {out.shape}")
         validity = self.adv_layer(out)
+        print(f"Output shape (forward): {validity.shape}")
         return validity
-
-
 
