@@ -58,7 +58,7 @@ def download_and_process_images(search_term, subscription_key, total_images=150,
                 continue  # Skip if the image has already been downloaded
 
             try:
-                image_data = requests.get(image_url)
+                image_data = requests.get(image_url, timeout=5)
                 image_data.raise_for_status()
                 image = Image.open(BytesIO(image_data.content))
                 image = crop_to_square(image).resize((256, 256), Image.Resampling.LANCZOS)
@@ -91,7 +91,8 @@ def crop_to_square(image):
 
 def main():
     SUBSCRIPTION_KEY = "78865a655c24410281f00b8ef08951ca"
-    SEARCH_TERMS = [ 
+    SEARCH_TERMS = [
+        'modern political rally', 'contemporary inauguration ceremony', 'modern historical reenactment', 
         'current military parade', 'recent public speeches', 'contemporary historical celebration', 
         'modern sports event', 'recent Olympic games', 'contemporary athletes in action', 
         'modern football match', 'recent basketball game', 'contemporary tennis tournament',
