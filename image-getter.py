@@ -91,8 +91,7 @@ def crop_to_square(image):
 
 def main():
     SUBSCRIPTION_KEY = "78865a655c24410281f00b8ef08951ca"
-    SEARCH_TERMS = [
-        'modern political rally', 'contemporary inauguration ceremony', 'modern historical reenactment', 
+    SEARCH_TERMS = [ 
         'current military parade', 'recent public speeches', 'contemporary historical celebration', 
         'modern sports event', 'recent Olympic games', 'contemporary athletes in action', 
         'modern football match', 'recent basketball game', 'contemporary tennis tournament',
