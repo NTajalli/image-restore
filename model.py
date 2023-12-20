@@ -71,7 +71,7 @@ class Discriminator(nn.Module):
         )
 
         # Dynamically determine the flatten size
-        self.determine_flatten_size()
+        self.flatten_size = self.determine_flatten_size()
 
         self.adv_layer = nn.Sequential(
             nn.Linear(self.flatten_size, 1),
@@ -82,8 +82,7 @@ class Discriminator(nn.Module):
         with torch.no_grad():
             dummy_input = torch.zeros(1, 3, 256, 256)
             dummy_output = self.model(dummy_input)
-            self.flatten_size = int(np.prod(dummy_output.size()[1:]))
-            print(f"Flatten size: {self.flatten_size}")  # Debug print
+            return int(np.prod(dummy_output.size()[1:]))
 
     def forward(self, img):
         out = self.model(img)
