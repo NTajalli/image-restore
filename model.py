@@ -72,14 +72,19 @@ class Discriminator(nn.Module):
             *discriminator_block(64, 128),
         )
 
-        # The height and width of downsampled image
-        ds_size = 256 // 2 ** 4
-        self.adv_layer = nn.Sequential(nn.Linear(128 * ds_size ** 2, 1),
-                                       nn.Sigmoid())
+        # Calculate the size of the flattened feature maps
+        # Assuming input images are 256x256
+        self.ds_size = 256 // 2 ** 4  # Downsampled size
+        self.flatten_size = 128 * self.ds_size ** 2
+
+        self.adv_layer = nn.Sequential(
+            nn.Linear(self.flatten_size, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, img):
         out = self.model(img)
-        out = out.view(out.size(0), -1)
+        out = out.view(out.size(0), -1)  # Flatten the output for the linear layer
         validity = self.adv_layer(out)
-
         return validity
+
