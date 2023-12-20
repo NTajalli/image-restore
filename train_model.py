@@ -47,7 +47,7 @@ def train(generator, discriminator, vintage_dataloader, original_dataloader, opt
             print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(vintage_dataloader)}] [D loss: {d_loss.item()}] [G loss: {g_loss.item()}]")
 
             batches_done = epoch * len(vintage_dataloader) + i
-            if batches_done % 400 == 0:
+            if batches_done % 10 == 0:
                 save_image(gen_imgs.data[:25], f"images/{batches_done}.png", nrow=5, normalize=True)
 
 
@@ -80,11 +80,11 @@ transform = transforms.Compose([
 # Create the dataset and dataloader
 # Dataset and Dataloader for vintage images (Generator input)
 vintage_dataset = CustomImageDataset(image_dir='vintage_images', transform=transform)
-vintage_dataloader = DataLoader(vintage_dataset, batch_size=2, shuffle=True)
+vintage_dataloader = DataLoader(vintage_dataset, batch_size=64, shuffle=True)
 
 # Dataset and Dataloader for original images (Discriminator real samples)
 original_dataset = CustomImageDataset(image_dir='downloaded_images', transform=transform)
-original_dataloader = DataLoader(original_dataset, batch_size=2, shuffle=True)
+original_dataloader = DataLoader(original_dataset, batch_size=64, shuffle=True)
 
 
 # Create a directory to save generated images
