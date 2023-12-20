@@ -83,11 +83,16 @@ class Discriminator(nn.Module):
             dummy_input = torch.zeros(1, 3, 256, 256)
             dummy_output = self.model(dummy_input)
             self.flatten_size = int(np.prod(dummy_output.size()[1:]))
+            print(f"Flatten size: {self.flatten_size}")  # Print the flatten size
 
     def forward(self, img):
+        print(f"Input shape: {img.shape}")  # Print the input shape
         out = self.model(img)
+        print(f"Shape after conv layers: {out.shape}")  # Print shape after convolutional layers
         out = out.view(out.size(0), -1)  # Flatten the output for the linear layer
+        print(f"Shape after flattening: {out.shape}")  # Print shape after flattening
         validity = self.adv_layer(out)
+        print(f"Output shape: {validity.shape}")  # Print the final output shape
         return validity
 
 
