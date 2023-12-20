@@ -1,30 +1,28 @@
 from model import *
 
 
-def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, epochs, device):
+def train(generator, discriminator, vintage_dataloader, original_dataloader, optimizer_G, optimizer_D, criterion, epochs, device):
     generator.to(device)
     discriminator.to(device)
     
     for epoch in range(epochs):
-        for i, imgs in enumerate(dataloader):
+        # Use itertools.zip_longest if dataloaders have different lengths
+        for i, (vintage_imgs, real_imgs) in enumerate(zip(vintage_dataloader, original_dataloader)):
 
             # Adversarial ground truths
-            valid = torch.ones(imgs.size(0), 1, requires_grad=False).to(device)
-            fake = torch.zeros(imgs.size(0), 1, requires_grad=False).to(device)
+            valid = torch.ones(real_imgs.size(0), 1, requires_grad=False).to(device)
+            fake = torch.zeros(vintage_imgs.size(0), 1, requires_grad=False).to(device)
 
-            # Configure input
-            real_imgs = imgs.to(device)
+            real_imgs = real_imgs.to(device)
+            vintage_imgs = vintage_imgs.to(device)
 
             # -----------------
             #  Train Generator
             # -----------------
             optimizer_G.zero_grad()
 
-            # Sample noise as generator input
-            z = torch.randn(imgs.size(0), 100).to(device)
-
             # Generate a batch of images
-            gen_imgs = generator(z)
+            gen_imgs = generator(vintage_imgs)
 
             # Loss measures generator's ability to fool the discriminator
             g_loss = criterion(discriminator(gen_imgs), valid)
@@ -45,11 +43,12 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             d_loss.backward()
             optimizer_D.step()
 
-            print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(dataloader)}] [D loss: {d_loss.item()}] [G loss: {g_loss.item()}]")
-            
-            batches_done = epoch * len(dataloader) + i
+            print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(vintage_dataloader)}] [D loss: {d_loss.item()}] [G loss: {g_loss.item()}]")
+
+            batches_done = epoch * len(vintage_dataloader) + i
             if batches_done % 400 == 0:
                 save_image(gen_imgs.data[:25], f"images/{batches_done}.png", nrow=5, normalize=True)
+
 
 
 
@@ -77,11 +76,17 @@ transform = transforms.Compose([
 ])
 
 # Create the dataset and dataloader
-dataset = CustomImageDataset(image_dir='downloaded_images', transform=transform)
-dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+# Dataset and Dataloader for vintage images (Generator input)
+vintage_dataset = CustomImageDataset(image_dir='vintage_images', transform=transform)
+vintage_dataloader = DataLoader(vintage_dataset, batch_size=64, shuffle=True)
+
+# Dataset and Dataloader for original images (Discriminator real samples)
+original_dataset = CustomImageDataset(image_dir='downloaded_images', transform=transform)
+original_dataloader = DataLoader(original_dataset, batch_size=64, shuffle=True)
+
 
 # Create a directory to save generated images
 os.makedirs('images', exist_ok=True)
 
-train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, n_epochs, device)
+train(generator, discriminator, vintage_dataloader, original_dataloader, optimizer_G, optimizer_D, criterion, n_epochs, device)
 
