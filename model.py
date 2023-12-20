@@ -51,8 +51,6 @@ class Generator(nn.Module):
     def forward(self, img):
         return self.model(img)
 
-
-
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
@@ -72,19 +70,24 @@ class Discriminator(nn.Module):
             *discriminator_block(64, 128),
         )
 
-        # Calculate the size of the flattened feature maps
-        # Assuming input images are 256x256
-        self.ds_size = 256 // 2 ** 4  # Downsampled size
-        self.flatten_size = 128 * self.ds_size ** 2
+        # Dynamically determine the flatten size
+        self.determine_flatten_size()
 
         self.adv_layer = nn.Sequential(
             nn.Linear(self.flatten_size, 1),
             nn.Sigmoid()
         )
 
+    def determine_flatten_size(self):
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, 3, 256, 256)
+            dummy_output = self.model(dummy_input)
+            self.flatten_size = int(np.prod(dummy_output.size()[1:]))
+
     def forward(self, img):
         out = self.model(img)
         out = out.view(out.size(0), -1)  # Flatten the output for the linear layer
         validity = self.adv_layer(out)
         return validity
+
 
