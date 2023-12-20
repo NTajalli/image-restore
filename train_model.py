@@ -78,11 +78,11 @@ transform = transforms.Compose([
 # Create the dataset and dataloader
 # Dataset and Dataloader for vintage images (Generator input)
 vintage_dataset = CustomImageDataset(image_dir='vintage_images', transform=transform)
-vintage_dataloader = DataLoader(vintage_dataset, batch_size=64, shuffle=True)
+vintage_dataloader = DataLoader(vintage_dataset, batch_size=2, shuffle=True)
 
 # Dataset and Dataloader for original images (Discriminator real samples)
 original_dataset = CustomImageDataset(image_dir='downloaded_images', transform=transform)
-original_dataloader = DataLoader(original_dataset, batch_size=64, shuffle=True)
+original_dataloader = DataLoader(original_dataset, batch_size=2, shuffle=True)
 
 
 # Create a directory to save generated images
