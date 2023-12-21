@@ -116,7 +116,6 @@ criterion = nn.BCEWithLogitsLoss()
 L1_loss = nn.L1Loss()
 
 train_transform = transforms.Compose([
-    transforms.ToPILImage(),
     transforms.Resize((256, 256)),
     transforms.RandomHorizontalFlip(),  # Data augmentation
     transforms.RandomRotation(10),  # Random rotation +/- 10 degrees
@@ -125,7 +124,6 @@ train_transform = transforms.Compose([
 
 # For Validation (without data augmentation)
 val_transform = transforms.Compose([
-    transforms.ToPILImage(),
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
 ])
