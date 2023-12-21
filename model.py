@@ -121,7 +121,7 @@ class Discriminator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            *discriminator_block(4, 64, normalization=False),  # 4-channel input for concatenated Lab image
+            *discriminator_block(3, 64, normalization=False),  # Corrected to 3-channel input
             *discriminator_block(64, 128),
             *discriminator_block(128, 256),
             *discriminator_block(256, 512),
