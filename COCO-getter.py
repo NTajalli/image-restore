@@ -34,23 +34,25 @@ def apply_blur(image):
     return image.filter(ImageFilter.GaussianBlur(radius=1))
 
 
-# Define directories
 original_dir = './downloaded_images'
 vintage_dir = './vintage_images'
 os.makedirs(original_dir, exist_ok=True)
 os.makedirs(vintage_dir, exist_ok=True)
 
-# Function to apply vintage filter
-def apply_vintage_filter(image):
-    # Randomly choose an effect to apply
-    return apply_vintage_effects(image)
+# Define the number of samples you want to download from each split
+max_samples_per_split = 1000  # Adjust this number based on your requirement
 
-# Download and process COCO dataset
+# Download and process a subset of COCO dataset
 splits = ["train", "validation", "test"]
 for split in splits:
-    dataset = foz.load_zoo_dataset("coco-2017", split=split)
+    dataset = foz.load_zoo_dataset(
+        "coco-2017",
+        split=split,
+        max_samples=max_samples_per_split,
+        shuffle=True
+    )
 
-    for sample in dataset:
+    for sample in dataset.take(max_samples_per_split):
         # Load the image
         image_path = sample.filepath
         image = Image.open(image_path)
@@ -60,7 +62,7 @@ for split in splits:
         image.save(original_image_path)
 
         # Apply the vintage filter and save
-        vintage_image = apply_vintage_filter(image)
+        vintage_image = apply_vintage_effects(image)
         vintage_image_path = os.path.join(vintage_dir, os.path.basename(image_path))
         vintage_image.save(vintage_image_path)
 
