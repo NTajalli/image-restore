@@ -19,17 +19,17 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Correctly reshape L to ensure it's a 4D tensor
             L = L.squeeze().unsqueeze(1)
 
-            # Initialize 'real' and 'fake' labels
-            patch_size = discriminator(torch.zeros_like(fake_images_lab)).size()[2:]
-            valid = torch.ones((L.size(0), 1, *patch_size), device=device, requires_grad=False)
-            fake = torch.zeros((L.size(0), 1, *patch_size), device=device, requires_grad=False)
-
             # Train Generator
             optimizer_G.zero_grad()
             gen_ab = generator(vintage)
 
             # Concatenate L channel with fake ab channels
             fake_images_lab = torch.cat((L, gen_ab), 1)
+
+            # Determine the size of the output of discriminator
+            patch_size = discriminator(torch.zeros_like(fake_images_lab)).size()[2:]
+            valid = torch.ones((L.size(0), 1, *patch_size), device=device, requires_grad=False)
+            fake = torch.zeros((L.size(0), 1, *patch_size), device=device, requires_grad=False)
 
             # Adversarial and L1 loss
             g_loss_adv = criterion(discriminator(fake_images_lab), valid)
@@ -55,8 +55,6 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             if batches_done % 10 == 0:
                 sample_images = torch.cat((vintage.data, gen_ab.data, ab.data), -1)
                 save_image(sample_images, f"images/{batches_done}.png", nrow=5, normalize=True)
-
-
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
