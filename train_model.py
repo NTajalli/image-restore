@@ -16,13 +16,9 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             ab = data['ab'].to(device)
             vintage = data['vintage'].to(device)
 
-            print("Shape of L before reshape:", L.shape)  # Debug print
-
             # Correctly reshape L to ensure it's a 4D tensor: [batch_size, 1, height, width]
             L = L.squeeze()  # Removes unnecessary dimensions
             L = L.unsqueeze(1)  # Adds the channel dimension back
-
-            print("Shape of L after reshape:", L.shape)  # Debug print
 
             # Adversarial ground truths
             valid = torch.ones((L.size(0), 1), device=device, requires_grad=False)
@@ -31,8 +27,6 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Train Generator
             optimizer_G.zero_grad()
             gen_ab = generator(vintage)  # Shape: [batch_size, 2, height, width]
-
-            print("Shape of gen_ab:", gen_ab.shape)  # Debug print
 
             # Concatenate L channel with fake ab channels
             try:
