@@ -68,33 +68,27 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
                 save_image(gen_rgb, f"images/{batches_done}_generated_rgb.png", nrow=5, normalize=True)
                 save_image(real_rgb, f"images/{batches_done}_real_rgb.png", nrow=5, normalize=True)
 
+def tensor_to_pil(tensor):
+    return transforms.ToPILImage()(tensor.cpu())
+
 def lab_to_rgb(L, ab):
     """
-    Converts a batch of images from L*a*b* color space to RGB.
+    Converts a batch of images from L*a*b* color space to RGB using PIL.
     Assumes L is in the range [0, 1] and a, b are in the range [-1, 1] if they were normalized.
     """
-    # Denormalize L channel to [0, 100]
-    L = (L * 100)
-    # Denormalize a and b channels to the range [-127, 128]
-    ab = (ab + 1) * 127.5
+    L = (L * 100).cpu().numpy()
+    ab = (ab + 1) * 127.5.cpu().numpy()
 
-    # Stack to create the L*a*b* image
-    Lab = torch.cat([L, ab], dim=1)
-    Lab = Lab.detach().cpu().permute(0, 2, 3, 1).numpy()
-
-    # Convert to BGR
-    bgr_imgs = [cv2.cvtColor(lab_img.astype(np.float32), cv2.COLOR_LAB2BGR) for lab_img in Lab]
-    bgr_imgs = np.stack(bgr_imgs, axis=0)
-
-    # Convert BGR to RGB and make a contiguous copy of the array to ensure positive stride
-    rgb_imgs = np.ascontiguousarray(bgr_imgs[..., ::-1])
-
-    # Convert numpy arrays to tensors and permute back to BxCxHxW
-    rgb_imgs = torch.from_numpy(rgb_imgs).permute(0, 3, 1, 2)
+    colorized_imgs = []
+    for i in range(L.shape[0]):
+        Lab_img = np.stack((L[i,0,:,:], ab[i,0,:,:], ab[i,1,:,:]), axis=2)
+        Lab_img = Lab_img.astype("uint8")
+        Lab_pil = Image.fromarray(Lab_img, "LAB")
+        rgb_pil = Lab_pil.convert("RGB")
+        rgb_img = transforms.ToTensor()(rgb_pil)
+        colorized_imgs.append(rgb_img)
     
-    # The values should already be in the correct range, so no clamping is necessary
-    return rgb_imgs
-
+    return torch.stack(colorized_imgs)
                 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
