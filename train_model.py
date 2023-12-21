@@ -75,26 +75,32 @@ def tensor_to_pil(tensor):
     return transforms.ToPILImage()(tensor.cpu())
 
 def lab_to_rgb(L, ab):
+    """
+    Converts a batch of images from L*a*b* color space to RGB using PIL.
+    Assumes L is in the range [0, 1] and a, b are in the range [-1, 1] if they were normalized.
+    """
+    # Normalize L channel to [0, 100] range
     L = (L * 100).cpu().numpy()
-    ab = ((ab + 1) * 127.5).cpu().numpy()
+
+    # Normalize a and b channels to [-128, 127] range
+    ab_normalized = np.clip(ab, -1, 1)  # Ensure ab values are within [-1, 1]
+    ab = ((ab_normalized + 1) * 127.5 - 128).cpu().numpy()  # Scale and shift to [-128, 127]
 
     colorized_imgs = []
     for i in range(L.shape[0]):
         Lab_img = np.stack((L[i,0,:,:], ab[i,0,:,:], ab[i,1,:,:]), axis=2)
         Lab_img = Lab_img.astype("uint8")
 
-        # Print statements to check the ranges of L, a, and b channels
-        print(f"L channel range: {L[i,0,:,:].min()} - {L[i,0,:,:].max()}")
-        print(f"a channel range: {ab[i,0,:,:].min()} - {ab[i,0,:,:].max()}")
-        print(f"b channel range: {ab[i,1,:,:].min()} - {ab[i,1,:,:].max()}")
+        # Debugging prints
+        print(f"Normalized a channel range: {ab[i,0,:,:].min()} - {ab[i,0,:,:].max()}")
+        print(f"Normalized b channel range: {ab[i,1,:,:].min()} - {ab[i,1,:,:].max()}")
 
         Lab_pil = Image.fromarray(Lab_img, "LAB")
         rgb_pil = Lab_pil.convert("RGB")
         rgb_img = transforms.ToTensor()(rgb_pil)
         colorized_imgs.append(rgb_img)
-
+    
     return torch.stack(colorized_imgs)
-
 
                 
 # Device configuration
