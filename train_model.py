@@ -15,6 +15,9 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             L = data['L'].to(device)  # Shape: [batch_size, 1, height, width]
             ab = data['ab'].to(device)
             vintage = data['vintage'].to(device)
+            
+            print(f"L shape: {L.shape}, ab shape: {ab.shape}, vintage shape: {vintage.shape}")
+
 
             # Correctly reshape L to ensure it's a 4D tensor
             L = L.squeeze().unsqueeze(1)
@@ -72,10 +75,6 @@ def tensor_to_pil(tensor):
     return transforms.ToPILImage()(tensor.cpu())
 
 def lab_to_rgb(L, ab):
-    """
-    Converts a batch of images from L*a*b* color space to RGB using PIL.
-    Assumes L is in the range [0, 1] and a, b are in the range [-1, 1] if they were normalized.
-    """
     L = (L * 100).cpu().numpy()
     ab = ((ab + 1) * 127.5).cpu().numpy()
 
@@ -83,12 +82,20 @@ def lab_to_rgb(L, ab):
     for i in range(L.shape[0]):
         Lab_img = np.stack((L[i,0,:,:], ab[i,0,:,:], ab[i,1,:,:]), axis=2)
         Lab_img = Lab_img.astype("uint8")
+
+        # Print statements to check the ranges of L, a, and b channels
+        print(f"L channel range: {L[i,0,:,:].min()} - {L[i,0,:,:].max()}")
+        print(f"a channel range: {ab[i,0,:,:].min()} - {ab[i,0,:,:].max()}")
+        print(f"b channel range: {ab[i,1,:,:].min()} - {ab[i,1,:,:].max()}")
+
         Lab_pil = Image.fromarray(Lab_img, "LAB")
         rgb_pil = Lab_pil.convert("RGB")
         rgb_img = transforms.ToTensor()(rgb_pil)
         colorized_imgs.append(rgb_img)
-    
+
     return torch.stack(colorized_imgs)
+
+
                 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
