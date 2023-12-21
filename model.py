@@ -61,27 +61,31 @@ class CustomImageDataset(Dataset):
         return {'L': L, 'ab': ab, 'vintage': vintage_image}
 
 class UnetBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, submodule=None, outermost=False, innermost=False, use_dropout=False):
+    def __init__(self, in_channels, out_channels, submodule=None, input_channels=None, use_dropout=False, innermost=False, outermost=False):
         super(UnetBlock, self).__init__()
         self.outermost = outermost
-        downconv = nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
+        if input_channels is None: 
+            input_channels = in_channels
+
+        downconv = nn.Conv2d(input_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
         downrelu = nn.LeakyReLU(0.2, True)
+        downnorm = nn.BatchNorm2d(out_channels)
         uprelu = nn.ReLU(True)
-        upnorm = nn.BatchNorm2d(out_channels * 2)  # Notice the change here
+        upnorm = nn.BatchNorm2d(in_channels)
 
         if outermost:
-            upconv = nn.ConvTranspose2d(out_channels * 2, out_channels, kernel_size=4, stride=2, padding=1)
+            upconv = nn.ConvTranspose2d(out_channels * 2, in_channels, kernel_size=4, stride=2, padding=1)
             down = [downconv]
             up = [uprelu, upconv, nn.Tanh()]
             model = down + [submodule] + up
         elif innermost:
-            upconv = nn.ConvTranspose2d(out_channels, out_channels * 2, kernel_size=4, stride=2, padding=1, bias=False)
+            upconv = nn.ConvTranspose2d(out_channels, in_channels, kernel_size=4, stride=2, padding=1, bias=False)
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
             model = down + up
         else:
-            upconv = nn.ConvTranspose2d(out_channels * 2, out_channels * 2, kernel_size=4, stride=2, padding=1, bias=False)
-            down = [downrelu, downconv, nn.BatchNorm2d(out_channels)]
+            upconv = nn.ConvTranspose2d(out_channels * 2, in_channels, kernel_size=4, stride=2, padding=1, bias=False)
+            down = [downrelu, downconv, downnorm]
             up = [uprelu, upconv, upnorm]
             if use_dropout:
                 up += [nn.Dropout(0.5)]
@@ -95,38 +99,21 @@ class UnetBlock(nn.Module):
         else:
             return torch.cat([x, self.model(x)], 1)
 
-        
-        if self.outermost:
-            output = self.model(x)
-            print(f"UnetBlock (Outermost) - Input shape: {x.shape}, Output shape: {output.shape}")
-            return output
-        else:
-            output = self.model(x)
-            concatenated_output = torch.cat([x, output], 1)
-            print(f"UnetBlock - Input shape: {x.shape}, Output shape: {output.shape}, Concatenated shape: {concatenated_output.shape}")
-            return concatenated_output
-
-
 class GeneratorUNet(nn.Module):
-    def __init__(self, input_channels=1, output_channels=2):
+    def __init__(self, input_channels=1, output_channels=2, num_down_blocks=8, base_filter_num=64):
         super(GeneratorUNet, self).__init__()
-
-        # Innermost layer
-        unet_innermost = UnetBlock(512, 512, innermost=True)
-
-        # Middle layers
-        unet_middle_0 = UnetBlock(512, 512, submodule=unet_innermost, use_dropout=True)
-        unet_middle_1 = UnetBlock(512, 512, submodule=unet_middle_0, use_dropout=True)
-        unet_middle_2 = UnetBlock(256, 512, submodule=unet_middle_1)
-        unet_middle_3 = UnetBlock(128, 256, submodule=unet_middle_2)
-        unet_middle_4 = UnetBlock(64, 128, submodule=unet_middle_3)
-
-        # Outermost layer
-        self.model = UnetBlock(output_channels, 64, submodule=unet_middle_4, outermost=True)
+        # Building the U-Net model from inside out
+        unet_block = UnetBlock(base_filter_num * 8, base_filter_num * 8, innermost=True)
+        for _ in range(num_down_blocks - 5):
+            unet_block = UnetBlock(base_filter_num * 8, base_filter_num * 8, submodule=unet_block, use_dropout=True)
+        current_filter_num = base_filter_num * 8
+        for _ in range(3):
+            unet_block = UnetBlock(current_filter_num // 2, current_filter_num, submodule=unet_block)
+            current_filter_num //= 2
+        self.model = UnetBlock(output_channels, current_filter_num, input_channels=input_channels, submodule=unet_block, outermost=True)
 
     def forward(self, x):
         return self.model(x)
-
     
 class PatchDiscriminator(nn.Module):
     def __init__(self, input_channels, num_filters=64, num_layers=3):
