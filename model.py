@@ -91,7 +91,7 @@ class GeneratorUNet(nn.Module):
         self.final = nn.Sequential(
             nn.Upsample(scale_factor=2),
             nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(64 * 2, 3, 4, padding=1),
+            nn.Conv2d(64 * 2, 2, 4, padding=1),
             nn.Tanh(),
         )
 
