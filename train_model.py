@@ -70,23 +70,27 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
 
 def lab_to_rgb(L, ab):
     """
-    Converts an L*a*b* batch of images to RGB.
-    
-    Assumes L is in the range [0, 1] and a, b are in the range [-1, 1].
+    Converts a batch of images from L*a*b* color space to RGB.
+    Assumes L is in the range [0, 1] and a, b are in the range [-1, 1] if they were normalized.
     """
-    # Denormalize L channel
-    L = (L + 1.) * 50.
-    # Denormalize a and b channels
-    ab = ab * 110.
+    L = (L * 100)  # Assuming L is in range [0, 1], scale to [0, 100]
+    ab = (ab + 1) * 127.5  # Assuming a, b are in range [-1, 1], scale to [0, 255]
+    
     # Stack to create the L*a*b* image
     Lab = torch.cat([L, ab], dim=1)
-    Lab = Lab.detach().cpu().numpy().transpose((0, 2, 3, 1))
+    
+    # Transfer to CPU if not already and convert to numpy
+    Lab = Lab.detach().cpu().permute(0, 2, 3, 1).numpy()
+    
     # Convert to RGB
-    rgb_imgs = [cv2.cvtColor(lab_img, cv2.COLOR_LAB2RGB) for lab_img in Lab]
-    # Convert numpy arrays to tensors
-    rgb_imgs = torch.from_numpy(np.stack(rgb_imgs, axis=0)).permute(0, 3, 1, 2)
-    # Clip to ensure the values are in the correct range
-    rgb_imgs = torch.clamp(rgb_imgs, 0, 1)
+    rgb_imgs = [cv2.cvtColor(lab_img.astype(np.float32), cv2.COLOR_LAB2BGR) for lab_img in Lab]
+    rgb_imgs = np.stack(rgb_imgs, axis=0)
+    
+    # Convert numpy arrays to tensors and permute back to BxCxHxW
+    rgb_imgs = torch.from_numpy(rgb_imgs).permute(0, 3, 1, 2)
+    
+    # Clip to ensure the values are in the correct range and convert to float
+    rgb_imgs = torch.clamp(rgb_imgs, 0, 255) / 255.0
     return rgb_imgs
 
 
