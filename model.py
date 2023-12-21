@@ -107,17 +107,22 @@ class GeneratorUNet(nn.Module):
     def __init__(self, input_channels=1, output_channels=2):
         super(GeneratorUNet, self).__init__()
 
-        # Construct U-Net structure
-        unet_block = UnetBlock(512, 512, innermost=True)  # Innermost layer
-        unet_block = UnetBlock(512, 512, submodule=unet_block, use_dropout=True)  # Middle layers
-        unet_block = UnetBlock(512, 512, submodule=unet_block, use_dropout=True)
-        unet_block = UnetBlock(256, 512, submodule=unet_block)
-        unet_block = UnetBlock(128, 256, submodule=unet_block)
-        unet_block = UnetBlock(64, 128, submodule=unet_block)
-        self.model = UnetBlock(output_channels, 64, submodule=unet_block, outermost=True)
+        # Innermost layer
+        unet_innermost = UnetBlock(512, 512, innermost=True)
+
+        # Middle layers
+        unet_middle_0 = UnetBlock(512, 512, submodule=unet_innermost, use_dropout=True)
+        unet_middle_1 = UnetBlock(512, 512, submodule=unet_middle_0, use_dropout=True)
+        unet_middle_2 = UnetBlock(256, 512, submodule=unet_middle_1)
+        unet_middle_3 = UnetBlock(128, 256, submodule=unet_middle_2)
+        unet_middle_4 = UnetBlock(64, 128, submodule=unet_middle_3)
+
+        # Outermost layer
+        self.model = UnetBlock(output_channels, 64, submodule=unet_middle_4, outermost=True)
 
     def forward(self, x):
         return self.model(x)
+
     
 class PatchDiscriminator(nn.Module):
     def __init__(self, input_channels, num_filters=64, num_layers=3):
