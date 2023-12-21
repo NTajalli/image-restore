@@ -11,15 +11,13 @@ from skimage.color import lab2rgb
 def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, epochs, device): 
     generator.to(device)
     discriminator.to(device)
+    os.makedirs('model_snapshots', exist_ok=True)
 
     for epoch in range(epochs):
         for i, data in enumerate(dataloader):
             L = data['L'].to(device)  # Shape: [batch_size, 1, height, width]
             ab = data['ab'].to(device)
             vintage = data['vintage'].to(device)
-            
-            print(f"L shape: {L.shape}, ab shape: {ab.shape}, vintage shape: {vintage.shape}")
-
 
             # Correctly reshape L to ensure it's a 4D tensor
             L = L.squeeze().unsqueeze(1)
@@ -58,7 +56,7 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Save Images
             # Save Images
             batches_done = epoch * len(dataloader) + i
-            if batches_done % 10 == 0:
+            if batches_done % 30 == 0:
                 # Convert the vintage images to grayscale for visualization
                 vintage_grayscale = vintage.data.mean(dim=1, keepdim=True)  # Averaging RGB channels to get grayscale
 
@@ -72,6 +70,16 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
                 save_image(vintage_grayscale, f"images/{batches_done}_vintage_grayscale.png", nrow=5, normalize=True)
                 save_image(gen_rgb, f"images/{batches_done}_generated_rgb.png", nrow=5, normalize=True)
                 save_image(real_rgb, f"images/{batches_done}_real_rgb.png", nrow=5, normalize=True)
+                
+        # Save generator and discriminator state
+        torch.save(generator.state_dict(), f'model_snapshots/generator_epoch_{epoch}.pth')
+        torch.save(discriminator.state_dict(), f'model_snapshots/discriminator_epoch_{epoch}.pth')
+
+        print(f"Saved model snapshots for epoch {epoch}")
+
+        # You may also want to save snapshots of your optimizers' states
+        torch.save(optimizer_G.state_dict(), f'model_snapshots/optimizerG_epoch_{epoch}.pth')
+        torch.save(optimizer_D.state_dict(), f'model_snapshots/optimizerD_epoch_{epoch}.pth')
 
 def lab_to_rgb(L, ab):
     """
