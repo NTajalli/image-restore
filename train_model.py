@@ -12,16 +12,17 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
 
     for epoch in range(epochs):
         for i, data in enumerate(dataloader):
-            L = data['L'].to(device)  # Shape: [batch_size, height, width]
-            ab = data['ab'].to(device)  # Shape: [batch_size, 2, height, width]
+            L = data['L'].to(device)  # Shape: [batch_size, 1, height, width]
+            ab = data['ab'].to(device)
             vintage = data['vintage'].to(device)
 
-            print("Shape of L before unsqueeze:", L.shape)  # Debug print
+            print("Shape of L before reshape:", L.shape)  # Debug print
 
-            # Ensure L has a single channel and is a 4D tensor
-            L = L.unsqueeze(1)  # Shape: [batch_size, 1, height, width]
+            # Correctly reshape L to ensure it's a 4D tensor: [batch_size, 1, height, width]
+            L = L.squeeze()  # Removes unnecessary dimensions
+            L = L.unsqueeze(1)  # Adds the channel dimension back
 
-            print("Shape of L after unsqueeze:", L.shape)  # Debug print
+            print("Shape of L after reshape:", L.shape)  # Debug print
 
             # Adversarial ground truths
             valid = torch.ones((L.size(0), 1), device=device, requires_grad=False)
