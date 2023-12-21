@@ -21,8 +21,8 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             L = L.unsqueeze(1)  # Adds the channel dimension back
 
             # Adversarial ground truths
-            valid = torch.ones((L.size(0), 1), device=device, requires_grad=False)
-            fake = torch.zeros((L.size(0), 1), device=device, requires_grad=False)
+            valid = torch.ones((L.size(0), 1, 16, 16), device=device, requires_grad=False)
+            fake = torch.zeros((L.size(0), 1, 16, 16), device=device, requires_grad=False)
 
             # Train Generator
             optimizer_G.zero_grad()
