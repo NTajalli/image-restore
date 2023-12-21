@@ -1,57 +1,53 @@
 from model import *
+import torch
+from torch.utils.data import DataLoader
+from torchvision.utils import save_image
+import os
+from torch import optim
 
-
-def train(generator, discriminator, vintage_dataloader, original_dataloader, optimizer_G, optimizer_D, criterion, epochs, device):
+# Adjusted for Lab color space processing
+def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, epochs, device):
     generator.to(device)
     discriminator.to(device)
     
     for epoch in range(epochs):
-        # Use itertools.zip_longest if dataloaders have different lengths
-        for i, (vintage_imgs, real_imgs) in enumerate(zip(vintage_dataloader, original_dataloader)):
+        for i, data in enumerate(dataloader):
+
+            L = data['L'].to(device)
+            ab = data['ab'].to(device)
+            vintage = data['vintage'].to(device)
 
             # Adversarial ground truths
-            valid = torch.ones(real_imgs.size(0), 1, requires_grad=False).to(device)
-            fake = torch.zeros(vintage_imgs.size(0), 1, requires_grad=False).to(device)
+            valid = torch.ones((L.size(0), 1), device=device, requires_grad=False)
+            fake = torch.zeros((L.size(0), 1), device=device, requires_grad=False)
 
-            real_imgs = real_imgs.to(device)
-            vintage_imgs = vintage_imgs.to(device)
-
-            # -----------------
-            #  Train Generator
-            # -----------------
+            # Train Generator
             optimizer_G.zero_grad()
-
-            # Generate a batch of images
-            gen_imgs = generator(vintage_imgs)
-            
-
-            # Loss measures generator's ability to fool the discriminator
-            g_loss = criterion(discriminator(gen_imgs), valid)
-
+            gen_ab = generator(vintage)
+            fake_image_lab = torch.cat((L.unsqueeze(1), gen_ab), 1)
+            real_image_lab = torch.cat((L.unsqueeze(1), ab), 1)
+            g_loss_adv = criterion(discriminator(fake_image_lab), valid)
+            g_loss_L1 = L1_loss(gen_ab, ab) * L1_lambda
+            g_loss = g_loss_adv + g_loss_L1
             g_loss.backward()
             optimizer_G.step()
 
-            # ---------------------
-            #  Train Discriminator
-            # ---------------------
+            # Train Discriminator
             optimizer_D.zero_grad()
-
-            # Measure discriminator's ability to classify real from generated samples
-            real_loss = criterion(discriminator(real_imgs), valid)
-            fake_loss = criterion(discriminator(gen_imgs.detach()), fake)
+            real_loss = criterion(discriminator(real_image_lab), valid)
+            fake_loss = criterion(discriminator(fake_image_lab.detach()), fake)
             d_loss = (real_loss + fake_loss) / 2
-
             d_loss.backward()
             optimizer_D.step()
 
-            print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(vintage_dataloader)}] [D loss: {d_loss.item()}] [G loss: {g_loss.item()}]")
+            # Logging
+            print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(dataloader)}] [D loss: {d_loss.item()}] [G loss: {g_loss.item()}]")
 
-            batches_done = epoch * len(vintage_dataloader) + i
+            # Save Images
+            batches_done = epoch * len(dataloader) + i
             if batches_done % 10 == 0:
-                save_image(gen_imgs.data[:25], f"images/{batches_done}.png", nrow=5, normalize=True)
-
-
-
+                sample_images = torch.cat((vintage.data, gen_ab.data, ab.data), -1)
+                save_image(sample_images, f"images/{batches_done}.png", nrow=5, normalize=True)
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -59,36 +55,34 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # Hyperparameters
 n_epochs = 50  # Number of epochs
 lr = 0.0002    # Learning rate
+L1_lambda = 100  # Weight for L1 loss
 
 # Initialize models
-generator = Generator()
+generator = GeneratorUNet()
 discriminator = Discriminator()
 
 # Optimizers
 optimizer_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 
-# Loss function
+# Loss functions
 criterion = nn.BCELoss()
+L1_loss = nn.L1Loss()
 
+# Dataset and DataLoader
 transform = transforms.Compose([
+    transforms.ToPILImage(),
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
-    transforms.Normalize((0.5,), (0.5,))
+    # No normalization should be applied as it's handled differently for Lab channels
 ])
-
-# Create the dataset and dataloader
-# Dataset and Dataloader for vintage images (Generator input)
-vintage_dataset = CustomImageDataset(image_dir='vintage_images', transform=transform)
-vintage_dataloader = DataLoader(vintage_dataset, batch_size=64, shuffle=True)
-
-# Dataset and Dataloader for original images (Discriminator real samples)
-original_dataset = CustomImageDataset(image_dir='downloaded_images', transform=transform)
-original_dataloader = DataLoader(original_dataset, batch_size=64, shuffle=True)
-
+vintage_dir = './vintage_images'
+color_dir = './downloaded_images'
+dataset = CustomImageDataset(vintage_dir=vintage_dir, color_dir=color_dir, transform=transform)
+dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
 
 # Create a directory to save generated images
 os.makedirs('images', exist_ok=True)
 
-train(generator, discriminator, vintage_dataloader, original_dataloader, optimizer_G, optimizer_D, criterion, n_epochs, device)
-
+# Start training
+train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, n_epochs, device)
