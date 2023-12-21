@@ -22,8 +22,6 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Correctly reshape L to ensure it's a 4D tensor
             L = L.squeeze().unsqueeze(1)
 
-            print(f"Training - L shape: {L.shape}")
-
             # Train Generator
             optimizer_G.zero_grad()
             gen_ab = generator(L)
@@ -59,17 +57,11 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Save Images
             batches_done = epoch * len(dataloader) + i
             if batches_done % 30 == 0:
-                # Convert the vintage images to grayscale for visualization
-                vintage_grayscale = vintage.data.mean(dim=1, keepdim=True)  # Averaging RGB channels to get grayscale
-
                 # Convert the generated ab channels back to RGB
                 gen_rgb = lab_to_rgb(L, gen_ab.data)  # This function needs to be implemented
-
                 # Convert the real ab channels back to RGB
                 real_rgb = lab_to_rgb(L, ab.data)  # This function needs to be implemented
-
                 # Save the images
-                save_image(vintage_grayscale, f"images/{batches_done}_vintage_grayscale.png", nrow=5, normalize=True)
                 save_image(gen_rgb, f"images/{batches_done}_generated_rgb.png", nrow=5, normalize=True)
                 save_image(real_rgb, f"images/{batches_done}_real_rgb.png", nrow=5, normalize=True)
                 
