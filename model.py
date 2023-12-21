@@ -129,9 +129,7 @@ class Discriminator(nn.Module):
             nn.Conv2d(512, 1, 4, padding=1)
         )
 
-    def forward(self, img_A, img_B):
-        # Concatenate image and condition image by channels to produce input
-        img_input = torch.cat((img_A, img_B), 1)
-        return self.model(img_input)
+    def forward(self, img):
+        return self.model(img)
 
 
