@@ -6,7 +6,7 @@ import os
 from torch import optim
 
 # Adjusted for Lab color space processing
-def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, L1_loss, L1_lambda, epochs, device):
+def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, epochs, device):
     generator.to(device)
     discriminator.to(device)
 
