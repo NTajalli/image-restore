@@ -86,15 +86,14 @@ def lab_to_rgb(L, ab):
     bgr_imgs = [cv2.cvtColor(lab_img.astype(np.float32), cv2.COLOR_LAB2BGR) for lab_img in Lab]
     bgr_imgs = np.stack(bgr_imgs, axis=0)
 
-    # Convert BGR to RGB
-    rgb_imgs = bgr_imgs[..., ::-1]
+    # Convert BGR to RGB and make a contiguous copy of the array to ensure positive stride
+    rgb_imgs = np.ascontiguousarray(bgr_imgs[..., ::-1])
 
     # Convert numpy arrays to tensors and permute back to BxCxHxW
     rgb_imgs = torch.from_numpy(rgb_imgs).permute(0, 3, 1, 2)
     
     # The values should already be in the correct range, so no clamping is necessary
     return rgb_imgs
-
 
                 
 # Device configuration
