@@ -6,29 +6,32 @@ import os
 from torch import optim
 
 # Adjusted for Lab color space processing
-def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, epochs, device):
+def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, epochs, device): 
     generator.to(device)
     discriminator.to(device)
 
     for epoch in range(epochs):
         for i, data in enumerate(dataloader):
-            L = data['L'].to(device).squeeze().unsqueeze(1)  # Correctly reshape L
+            L = data['L'].to(device)  # Shape: [batch_size, 1, height, width]
             ab = data['ab'].to(device)
+            vintage = data['vintage'].to(device)
 
-            # Check shapes of L and ab
-            print("Shape of L:", L.shape)
-            print("Shape of ab:", ab.shape)
+            # Correctly reshape L to ensure it's a 4D tensor
+            L = L.squeeze().unsqueeze(1)
 
             # Train Generator
             optimizer_G.zero_grad()
-            gen_ab = generator(L)
+            gen_ab = generator(vintage)
+
+            # Concatenate L channel with fake ab channels
             fake_images_lab = torch.cat((L, gen_ab), 1)
 
-            # Check shape of gen_ab
-            print("Shape of gen_ab:", gen_ab.shape)
+            # Determine the size of the output of discriminator
+            patch_size = discriminator(torch.zeros_like(fake_images_lab)).size()[2:]
+            valid = torch.ones((L.size(0), 1, *patch_size), device=device, requires_grad=False)
+            fake = torch.zeros((L.size(0), 1, *patch_size), device=device, requires_grad=False)
 
             # Adversarial and L1 loss
-            valid, fake = get_discriminator_labels(L, discriminator)
             g_loss_adv = criterion(discriminator(fake_images_lab), valid)
             g_loss_L1 = L1_loss(gen_ab, ab) * L1_lambda
             g_loss = g_loss_adv + g_loss_L1
@@ -48,16 +51,10 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(dataloader)}] [D loss: {d_loss.item()}] [G loss: {g_loss.item()}]")
 
             # Save Images
-            if i % 10 == 0:
-                save_image(fake_images_lab.data[:5], f"images/{epoch}_{i}.png", nrow=5, normalize=True)
-
-    print("Training Complete")
-
-def get_discriminator_labels(L, discriminator):
-    patch_size = discriminator(torch.zeros_like(torch.cat((L, L), 1))).size()[2:]
-    valid = torch.ones((L.size(0), 1, *patch_size), device=device)
-    fake = torch.zeros((L.size(0), 1, *patch_size), device=device)
-    return valid, fake
+            batches_done = epoch * len(dataloader) + i
+            if batches_done % 10 == 0:
+                sample_images = torch.cat((vintage.data, gen_ab.data, ab.data), -1)
+                save_image(sample_images, f"images/{batches_done}.png", nrow=5, normalize=True)
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -76,7 +73,7 @@ optimizer_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 
 # Loss functions
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.BCELoss()
 L1_loss = nn.L1Loss()
 
 # Dataset and DataLoader

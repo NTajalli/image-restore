@@ -74,12 +74,12 @@ class UNetUp(nn.Module):
         x = torch.cat((x, skip_input), 1)
         return x
 
-class GeneratorUNet(nn.Module):
+class GeneratorUNet(nn.Module): 
     def __init__(self):
         super(GeneratorUNet, self).__init__()
 
         # Downsampling
-        self.down1 = UNetDown(1, 64, normalize=False)
+        self.down1 = UNetDown(3, 64, normalize=False)
         self.down2 = UNetDown(64, 128)
         self.down3 = UNetDown(128, 256)
         self.down4 = UNetDown(256, 512, dropout=0.5)
@@ -91,7 +91,7 @@ class GeneratorUNet(nn.Module):
         self.final = nn.Sequential(
             nn.Upsample(scale_factor=2),
             nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(64 * 2, 2, 4, padding=1),
+            nn.Conv2d(64 * 2, 3, 4, padding=1),
             nn.Tanh(),
         )
 
@@ -121,7 +121,7 @@ class Discriminator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            *discriminator_block(3, 64, normalization=False),  # Corrected to 3-channel input
+            *discriminator_block(4, 64, normalization=False),  # 4-channel input for concatenated Lab image
             *discriminator_block(64, 128),
             *discriminator_block(128, 256),
             *discriminator_block(256, 512),
