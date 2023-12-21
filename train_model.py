@@ -87,11 +87,11 @@ def lab_to_rgb(L, ab):
         L_img = L[i].cpu().numpy()
         ab_img = ab[i].cpu().numpy()
 
-        # Make sure the L channel has the same shape as the ab channels
-        L_img = np.expand_dims(L_img, axis=0)  # Add an extra dimension
+        # Reshape L to match the dimensions of ab
+        L_img = L_img.squeeze()  # Remove any singleton dimensions
 
         # Stack L and ab channels
-        Lab_img = np.vstack((L_img, ab_img)).transpose(1, 2, 0)  # Rearrange dimensions to HxWxC
+        Lab_img = np.stack((L_img, ab_img[0], ab_img[1]), axis=-1)  # Stack along the last dimension
 
         # Convert Lab to RGB
         rgb_img = lab2rgb(Lab_img)
@@ -100,6 +100,7 @@ def lab_to_rgb(L, ab):
         colorized_images.append(torch.from_numpy(rgb_img).permute(2, 0, 1))
 
     return torch.stack(colorized_images)
+
 
      
 # Device configuration
