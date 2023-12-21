@@ -6,12 +6,14 @@ import os
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
-import cv2
+from skimage.color import rgb2lab
+
 
 class CustomImageDataset(Dataset):
-    def __init__(self, vintage_dir, color_dir, transform=None):
+    def __init__(self, vintage_dir, color_dir, transform=None, is_train=True):
         self.vintage_dir = vintage_dir
         self.color_dir = color_dir
+        self.is_train = is_train
         self.transform = transform
         self.image_filenames = [f for f in os.listdir(vintage_dir) if os.path.isfile(os.path.join(vintage_dir, f))]
         self.image_filenames.sort()
@@ -26,22 +28,36 @@ class CustomImageDataset(Dataset):
         vintage_image = Image.open(vintage_img_name).convert('RGB')
         color_image = Image.open(color_img_name).convert('RGB')
 
-        # Convert PIL Images to NumPy arrays
-        vintage_image_np = np.array(vintage_image)
-        color_image_np = np.array(color_image)
-
-        # Convert color image to Lab color space
-        color_image_lab = cv2.cvtColor(color_image_np, cv2.COLOR_RGB2LAB)
-        L = color_image_lab[:, :, 0]
-        ab = color_image_lab[:, :, 1:]
-
         # Apply transformations
         if self.transform:
-            vintage_image = self.transform(vintage_image_np)
-            L = self.transform(L).unsqueeze(0)
-            ab = self.transform(ab)
+            if self.is_train:
+                # Apply the same random transformation to both vintage and color images
+                seed = np.random.randint(2147483647)
+                np.random.seed(seed)
+                torch.manual_seed(seed)
+                vintage_image = self.transform(vintage_image)
+
+                np.random.seed(seed)
+                torch.manual_seed(seed)
+                color_image = self.transform(color_image)
+            else:
+                vintage_image = self.transform(vintage_image)
+                color_image = self.transform(color_image)
+
+        # Convert color image to Lab color space using skimage
+        color_image_np = np.array(color_image)
+        color_image_lab = rgb2lab(color_image_np).astype("float32")
+        
+        # Normalize Lab channels
+        L = color_image_lab[:, :, 0] / 50. - 1.  # Normalize L channel to [-1, 1]
+        ab = color_image_lab[:, :, 1:] / 110.  # Normalize ab channels to [-1, 1]
+
+        # Convert to tensors
+        L = torch.from_numpy(L).unsqueeze(0).float()
+        ab = torch.from_numpy(ab).permute(2, 0, 1).float()
 
         return {'L': L, 'ab': ab, 'vintage': vintage_image}
+
 
 class UNetDown(nn.Module):
     def __init__(self, in_size, out_size, normalize=True, dropout=0.0):

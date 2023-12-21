@@ -4,6 +4,8 @@ from torch.utils.data import DataLoader
 from torchvision.utils import save_image
 import os
 from torch import optim
+from skimage.color import lab2rgb
+
 
 # Adjusted for Lab color space processing
 def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, epochs, device): 
@@ -74,35 +76,25 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
 def lab_to_rgb(L, ab):
     """
     Converts a batch of images from L*a*b* color space to RGB.
-    Assumes L is in the range [0, 100] and a, b are in the range [-128, 127].
+    Assumes L is in the range [-1, 1] and a, b are in the range [-1, 1].
     """
-    # Move the tensors to CPU and convert to numpy arrays
-    L = L.cpu().numpy()
-    ab = ab.cpu().numpy()
+    L = (L + 1.) * 50.  # Rescale L channel to [0, 100]
+    ab = ab * 110.  # Rescale ab channels to [-128, 127]
 
     # Initialize a list to hold the RGB images
     colorized_images = []
 
     # Process each image in the batch
     for i in range(L.shape[0]):
-        # Construct the Lab image from the L and ab channels
-        Lab_img = np.stack((L[i], ab[i][0], ab[i][1]), axis=-1)
+        Lab_img = np.stack((L[i].cpu().numpy(), ab[i][0].cpu().numpy(), ab[i][1].cpu().numpy()), axis=-1)
+        rgb_img = lab2rgb(Lab_img)
 
-        # Convert Lab to BGR
-        bgr_img = cv2.cvtColor(Lab_img.astype(np.uint8), cv2.COLOR_Lab2BGR)
-
-        # Convert BGR to RGB
-        rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
-
-        # Convert the RGB image to a tensor, normalize to range [0, 1], and add to the list
-        colorized_images.append(torch.from_numpy(rgb_img).permute(2, 0, 1).float() / 255.0)
+        # Convert the RGB image to a tensor and add to the list
+        colorized_images.append(torch.from_numpy(rgb_img).permute(2, 0, 1))
 
     # Stack the list of tensors into a single tensor
     return torch.stack(colorized_images)
-
-
-
-                
+     
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -123,20 +115,37 @@ optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 criterion = nn.BCEWithLogitsLoss()
 L1_loss = nn.L1Loss()
 
-# Dataset and DataLoader
-transform = transforms.Compose([
+train_transform = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.Resize((256, 256)),
+    transforms.RandomHorizontalFlip(),  # Data augmentation
+    transforms.RandomRotation(10),  # Random rotation +/- 10 degrees
+    transforms.ToTensor(),
+])
+
+# For Validation (without data augmentation)
+val_transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((256, 256)),
     transforms.ToTensor(),
-    # No normalization should be applied as it's handled differently for Lab channels
 ])
+
+# Usage
 vintage_dir = './vintage_images'
 color_dir = './downloaded_images'
-dataset = CustomImageDataset(vintage_dir=vintage_dir, color_dir=color_dir, transform=transform)
-dataloader = DataLoader(dataset, batch_size=64, shuffle=True)
+
+# For training dataset
+train_dataset = CustomImageDataset(vintage_dir=vintage_dir, color_dir=color_dir, transform=train_transform, is_train=True)
+
+# For validation dataset
+val_dataset = CustomImageDataset(vintage_dir=vintage_dir, color_dir=color_dir, transform=val_transform, is_train=False)
+
+# Dataloaders
+train_dataloader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+val_dataloader = DataLoader(val_dataset, batch_size=64, shuffle=False)
 
 # Create a directory to save generated images
 os.makedirs('images', exist_ok=True)
 
 # Start training
-train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, n_epochs, device)
+train(generator, discriminator, train_dataloader, optimizer_G, optimizer_D, criterion, L1_loss, L1_lambda, n_epochs, device)
