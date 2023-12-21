@@ -16,29 +16,18 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             ab = data['ab'].to(device)
             vintage = data['vintage'].to(device)
 
-            # Correctly reshape L to ensure it's a 4D tensor: [batch_size, 1, height, width]
-            L = L.squeeze()  # Removes unnecessary dimensions
-            L = L.unsqueeze(1)  # Adds the channel dimension back
-
-            # Adversarial ground truths
-            valid = torch.ones((L.size(0), 1, 16, 16), device=device, requires_grad=False)
-            fake = torch.zeros((L.size(0), 1, 16, 16), device=device, requires_grad=False)
+            # Correctly reshape L to ensure it's a 4D tensor
+            L = L.squeeze().unsqueeze(1)
 
             # Train Generator
             optimizer_G.zero_grad()
-            gen_ab = generator(vintage)  # Shape: [batch_size, 2, height, width]
+            gen_ab = generator(vintage)
 
             # Concatenate L channel with fake ab channels
-            try:
-                fake_images_lab = torch.cat((L, gen_ab), 1)
-            except RuntimeError as e:
-                print("Error during concatenation:", e)
-                print("Shape of L:", L.shape)
-                print("Shape of gen_ab:", gen_ab.shape)
-                raise e
+            fake_images_lab = torch.cat((L, gen_ab), 1)
 
             # Adversarial and L1 loss
-            g_loss_adv = criterion(discriminator(fake_images_lab), valid)
+            g_loss_adv = criterion(discriminator(fake_images_lab), valid.expand_as(discriminator(fake_images_lab)))
             g_loss_L1 = L1_loss(gen_ab, ab) * L1_lambda
             g_loss = g_loss_adv + g_loss_L1
             g_loss.backward()
@@ -47,8 +36,8 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Train Discriminator
             optimizer_D.zero_grad()
             real_images_lab = torch.cat((L, ab), 1)
-            real_loss = criterion(discriminator(real_images_lab), valid)
-            fake_loss = criterion(discriminator(fake_images_lab.detach()), fake)
+            real_loss = criterion(discriminator(real_images_lab), valid.expand_as(discriminator(real_images_lab)))
+            fake_loss = criterion(discriminator(fake_images_lab.detach()), fake.expand_as(discriminator(fake_images_lab)))
             d_loss = (real_loss + fake_loss) / 2
             d_loss.backward()
             optimizer_D.step()
@@ -61,6 +50,7 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             if batches_done % 10 == 0:
                 sample_images = torch.cat((vintage.data, gen_ab.data, ab.data), -1)
                 save_image(sample_images, f"images/{batches_done}.png", nrow=5, normalize=True)
+
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

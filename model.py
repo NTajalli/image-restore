@@ -121,14 +121,14 @@ class Discriminator(nn.Module):
             return layers
 
         self.model = nn.Sequential(
-            nn.Conv2d(4, 64, 4, stride=2, padding=1),  # Adjusted for 4-channel input
-            nn.LeakyReLU(0.2, inplace=True),
+            *discriminator_block(4, 64, normalization=False),  # 4-channel input for concatenated Lab image
             *discriminator_block(64, 128),
             *discriminator_block(128, 256),
             *discriminator_block(256, 512),
             nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(512, 1, 4, padding=1)
+            nn.Conv2d(512, 1, 4, padding=1)  # Output is a matrix of scores
         )
 
     def forward(self, img):
         return self.model(img)
+
