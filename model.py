@@ -90,6 +90,8 @@ class UnetBlock(nn.Module):
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
+        print(f"UnetBlock - Input shape: {x.shape}")
+        
         if self.outermost:
             output = self.model(x)
             print(f"UnetBlock (Outermost) - Input shape: {x.shape}, Output shape: {output.shape}")
