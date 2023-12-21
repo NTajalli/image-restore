@@ -53,8 +53,13 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Save Images
             batches_done = epoch * len(dataloader) + i
             if batches_done % 10 == 0:
-                sample_images = torch.cat((vintage.data, gen_ab.data, ab.data), -1)
+                # Convert the vintage images to grayscale for visualization
+                vintage_grayscale = vintage.data.mean(dim=1, keepdim=True)  # Averaging RGB channels to get grayscale
+                
+                # Concatenate and save the images
+                sample_images = torch.cat((vintage_grayscale, gen_ab.data, ab.data), -1)
                 save_image(sample_images, f"images/{batches_done}.png", nrow=5, normalize=True)
+
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
