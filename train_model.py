@@ -97,7 +97,7 @@ def lab_to_rgb(L, ab):
     rgb_imgs = torch.from_numpy(rgb_imgs).permute(0, 3, 1, 2)
     
     # Clip to ensure the values are in the correct range and convert to float
-    rgb_imgs = torch.clamp(rgb_imgs, 0, 255) / 255.0
+    rgb_imgs = torch.clamp(rgb_imgs, 0, 255)
 
     # Print the final range of RGB values after clamping
     print(f"RGB tensor range after clamping: min {rgb_imgs.min()}, max {rgb_imgs.max()}")
