@@ -71,37 +71,12 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
                 save_image(gen_rgb, f"images/{batches_done}_generated_rgb.png", nrow=5, normalize=True)
                 save_image(real_rgb, f"images/{batches_done}_real_rgb.png", nrow=5, normalize=True)
 
-def tensor_to_pil(tensor):
-    return transforms.ToPILImage()(tensor.cpu())
-
 def lab_to_rgb(L, ab):
-    """
-    Converts a batch of images from L*a*b* color space to RGB using PIL.
-    Assumes L is in the range [0, 1] and a, b are in the range [-1, 1] if they were normalized.
-    """
-    # Normalize L channel to [0, 100] range
-    L = (L * 100).cpu().numpy()
-
-    # Normalize a and b channels to [-128, 127] range
-    ab_normalized = np.clip(ab, -1, 1)  # Ensure ab values are within [-1, 1]
-    ab = (ab_normalized + 1) * 127.5  # Scale to [0, 255]
-    ab = ab - 128  # Shift to [-128, 127]  # Scale and shift to [-128, 127]
-
-    colorized_imgs = []
-    for i in range(L.shape[0]):
-        Lab_img = np.stack((L[i,0,:,:], ab[i,0,:,:], ab[i,1,:,:]), axis=2)
-        Lab_img = Lab_img.astype("uint8")
-
-        # Debugging prints
-        print(f"Normalized a channel range: {ab[i,0,:,:].min()} - {ab[i,0,:,:].max()}")
-        print(f"Normalized b channel range: {ab[i,1,:,:].min()} - {ab[i,1,:,:].max()}")
-
-        Lab_pil = Image.fromarray(Lab_img, "LAB")
-        rgb_pil = Lab_pil.convert("RGB")
-        rgb_img = transforms.ToTensor()(rgb_pil)
-        colorized_imgs.append(rgb_img)
-    
-    return torch.stack(colorized_imgs)
+    Lab = cv2.merge((L, ab[:, 0, :, :], ab[:, 1, :, :]))
+    Lab = Lab.numpy().transpose((0, 2, 3, 1)).astype(np.uint8)
+    RGB = cv2.cvtColor(Lab, cv2.COLOR_Lab2RGB)
+    RGB = RGB.transpose((0, 3, 1, 2))
+    return torch.from_numpy(RGB).float() / 255.0
 
                 
 # Device configuration
