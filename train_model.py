@@ -72,44 +72,34 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
                 save_image(real_rgb, f"images/{batches_done}_real_rgb.png", nrow=5, normalize=True)
 
 def lab_to_rgb(L, ab):
-    # Assuming L and ab are PyTorch tensors at this point, they need to be converted to numpy arrays
+    """
+    Converts a batch of images from L*a*b* color space to RGB.
+    Assumes L is in the range [0, 100] and a, b are in the range [-128, 127].
+    """
+    # Move the tensors to CPU and convert to numpy arrays
     L = L.cpu().numpy()
     ab = ab.cpu().numpy()
 
-    # Ensure that L and ab have the same data type and number of dimensions
-    L = L.astype(np.float32)
-    ab = ab.astype(np.float32)
+    # Initialize a list to hold the RGB images
+    colorized_images = []
 
-    # OpenCV expects the image to be in width x height format, so we need to transpose the axes
-    L = L.transpose((0, 2, 3, 1))
-    ab = ab.transpose((0, 2, 3, 1))
+    # Process each image in the batch
+    for i in range(L.shape[0]):
+        # Construct the Lab image from the L and ab channels
+        Lab_img = np.stack((L[i], ab[i][0], ab[i][1]), axis=-1)
 
-    # Merge the L and ab channels
-    Lab = np.concatenate((L, ab), axis=-1)
+        # Convert Lab to BGR
+        bgr_img = cv2.cvtColor(Lab_img.astype(np.uint8), cv2.COLOR_Lab2BGR)
 
-    # OpenCV requires a 2D array for each color channel, so we need to squeeze out the singleton dimensions
-    Lab = np.squeeze(Lab)
+        # Convert BGR to RGB
+        rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
 
-    # Now, we'll convert Lab to RGB
-    RGB = []
-    for lab_img in Lab:
-        # Ensure the single image is in 2D
-        lab_img_2d = lab_img.reshape((lab_img.shape[0], lab_img.shape[1], 3))
-        # Convert Lab to RGB
-        rgb_img = cv2.cvtColor(lab_img_2d, cv2.COLOR_Lab2BGR)
-        # Add to list
-        RGB.append(rgb_img)
+        # Convert the RGB image to a tensor, normalize to range [0, 1], and add to the list
+        colorized_images.append(torch.from_numpy(rgb_img).permute(2, 0, 1).float() / 255.0)
 
-    # Convert the list of RGB images back to a 4D array
-    RGB = np.stack(RGB, axis=0)
+    # Stack the list of tensors into a single tensor
+    return torch.stack(colorized_images)
 
-    # Convert back to tensor and permute to get the channel as the second dimension
-    RGB = torch.from_numpy(RGB).permute(0, 3, 1, 2)
-
-    # Normalize the RGB values to [0, 1] if they're in [0, 255] after the conversion
-    RGB = RGB.float() / 255.0
-
-    return RGB
 
 
                 
