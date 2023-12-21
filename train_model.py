@@ -51,14 +51,37 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             print(f"[Epoch {epoch}/{epochs}] [Batch {i}/{len(dataloader)}] [D loss: {d_loss.item()}] [G loss: {g_loss.item()}]")
 
             # Save Images
+            # Save Images
             batches_done = epoch * len(dataloader) + i
             if batches_done % 10 == 0:
                 # Convert the vintage images to grayscale for visualization
                 vintage_grayscale = vintage.data.mean(dim=1, keepdim=True)  # Averaging RGB channels to get grayscale
-                # Visualizing and saving the images separately
+
+                # Convert the generated ab channels back to RGB
+                gen_rgb = lab_to_rgb(L, gen_ab.data)  # This function needs to be implemented
+
+                # Convert the real ab channels back to RGB
+                real_rgb = lab_to_rgb(L, ab.data)  # This function needs to be implemented
+
+                # Save the images
                 save_image(vintage_grayscale, f"images/{batches_done}_vintage_grayscale.png", nrow=5, normalize=True)
-                save_image(gen_ab.data, f"images/{batches_done}_generated_ab.png", nrow=5, normalize=True)
-                save_image(ab.data, f"images/{batches_done}_real_ab.png", nrow=5, normalize=True)
+                save_image(gen_rgb, f"images/{batches_done}_generated_rgb.png", nrow=5, normalize=True)
+                save_image(real_rgb, f"images/{batches_done}_real_rgb.png", nrow=5, normalize=True)
+
+def lab_to_rgb(L, ab):
+    """
+    Takes a batch of images
+    """
+    L = (L + 1.) * 50.
+    ab = ab * 110.
+    Lab = torch.cat([L, ab], dim=1)
+    Lab = Lab.detach().cpu().numpy().transpose((0, 2, 3, 1))
+    rgb_imgs = []
+    for img in Lab:
+        img_rgb = cv2.cvtColor(img.astype(np.float32), cv2.COLOR_LAB2RGB)
+        rgb_imgs.append(torch.from_numpy(img_rgb).permute(2, 0, 1))
+    return torch.stack(rgb_imgs, dim=0)
+
                 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
