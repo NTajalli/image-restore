@@ -91,9 +91,15 @@ class UnetBlock(nn.Module):
 
     def forward(self, x):
         if self.outermost:
-            return self.model(x)
-        else:  # add skip connections
-            return torch.cat([x, self.model(x)], 1)
+            output = self.model(x)
+            print(f"UnetBlock (Outermost) - Input shape: {x.shape}, Output shape: {output.shape}")
+            return output
+        else:
+            output = self.model(x)
+            concatenated_output = torch.cat([x, output], 1)
+            print(f"UnetBlock - Input shape: {x.shape}, Output shape: {output.shape}, Concatenated shape: {concatenated_output.shape}")
+            return concatenated_output
+
 
 class GeneratorUNet(nn.Module):
     def __init__(self, input_channels=1, output_channels=2):

@@ -22,6 +22,8 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Correctly reshape L to ensure it's a 4D tensor
             L = L.squeeze().unsqueeze(1)
 
+            print(f"Training - L shape: {L.shape}")
+
             # Train Generator
             optimizer_G.zero_grad()
             gen_ab = generator(L)
