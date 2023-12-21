@@ -77,7 +77,7 @@ def lab_to_rgb(L, ab):
     Assumes L is in the range [0, 1] and a, b are in the range [-1, 1] if they were normalized.
     """
     L = (L * 100).cpu().numpy()
-    ab = (ab + 1) * 127.5.cpu().numpy()
+    ab = ((ab + 1) * 127.5).cpu().numpy()
 
     colorized_imgs = []
     for i in range(L.shape[0]):
