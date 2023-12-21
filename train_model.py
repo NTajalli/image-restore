@@ -72,11 +72,45 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
                 save_image(real_rgb, f"images/{batches_done}_real_rgb.png", nrow=5, normalize=True)
 
 def lab_to_rgb(L, ab):
-    Lab = cv2.merge((L, ab[:, 0, :, :], ab[:, 1, :, :]))
-    Lab = Lab.numpy().transpose((0, 2, 3, 1)).astype(np.uint8)
-    RGB = cv2.cvtColor(Lab, cv2.COLOR_Lab2RGB)
-    RGB = RGB.transpose((0, 3, 1, 2))
-    return torch.from_numpy(RGB).float() / 255.0
+    # Assuming L and ab are PyTorch tensors at this point, they need to be converted to numpy arrays
+    L = L.cpu().numpy()
+    ab = ab.cpu().numpy()
+
+    # Ensure that L and ab have the same data type and number of dimensions
+    L = L.astype(np.float32)
+    ab = ab.astype(np.float32)
+
+    # OpenCV expects the image to be in width x height format, so we need to transpose the axes
+    L = L.transpose((0, 2, 3, 1))
+    ab = ab.transpose((0, 2, 3, 1))
+
+    # Merge the L and ab channels
+    Lab = np.concatenate((L, ab), axis=-1)
+
+    # OpenCV requires a 2D array for each color channel, so we need to squeeze out the singleton dimensions
+    Lab = np.squeeze(Lab)
+
+    # Now, we'll convert Lab to RGB
+    RGB = []
+    for lab_img in Lab:
+        # Ensure the single image is in 2D
+        lab_img_2d = lab_img.reshape((lab_img.shape[0], lab_img.shape[1], 3))
+        # Convert Lab to RGB
+        rgb_img = cv2.cvtColor(lab_img_2d, cv2.COLOR_Lab2BGR)
+        # Add to list
+        RGB.append(rgb_img)
+
+    # Convert the list of RGB images back to a 4D array
+    RGB = np.stack(RGB, axis=0)
+
+    # Convert back to tensor and permute to get the channel as the second dimension
+    RGB = torch.from_numpy(RGB).permute(0, 3, 1, 2)
+
+    # Normalize the RGB values to [0, 1] if they're in [0, 255] after the conversion
+    RGB = RGB.float() / 255.0
+
+    return RGB
+
 
                 
 # Device configuration
