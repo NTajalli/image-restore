@@ -110,20 +110,7 @@ class GeneratorUNet(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-
-    def forward(self, x):
-        # U-Net generator with skip connections from encoder to decoder
-        d1 = self.down1(x)
-        d2 = self.down2(d1)
-        d3 = self.down3(d2)
-        d4 = self.down4(d3)
-        
-        u1 = self.up1(d4, d3)
-        u2 = self.up2(u1, d2)
-        u3 = self.up3(u2, d1)
-        
-        return self.final(u3)
-
+    
 class PatchDiscriminator(nn.Module):
     def __init__(self, input_channels, num_filters=64, num_layers=3):
         super(PatchDiscriminator, self).__init__()
