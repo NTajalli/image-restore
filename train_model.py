@@ -55,9 +55,6 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             if batches_done % 10 == 0:
                 # Convert the vintage images to grayscale for visualization
                 vintage_grayscale = vintage.data.mean(dim=1, keepdim=True)  # Averaging RGB channels to get grayscale
-
-                # Concatenate and save the images
-                sample_images = torch.cat((vintage_grayscale, gen_ab.data, ab.data), -1)
                 # Visualizing and saving the images separately
                 save_image(vintage_grayscale, f"images/{batches_done}_vintage_grayscale.png", nrow=5, normalize=True)
                 save_image(gen_ab.data, f"images/{batches_done}_generated_ab.png", nrow=5, normalize=True)
