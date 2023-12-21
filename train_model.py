@@ -84,7 +84,8 @@ def lab_to_rgb(L, ab):
 
     # Normalize a and b channels to [-128, 127] range
     ab_normalized = np.clip(ab, -1, 1)  # Ensure ab values are within [-1, 1]
-    ab = ((ab_normalized + 1) * 127.5 - 128).cpu().numpy()  # Scale and shift to [-128, 127]
+    ab = (ab_normalized + 1) * 127.5  # Scale to [0, 255]
+    ab = ab - 128  # Shift to [-128, 127]  # Scale and shift to [-128, 127]
 
     colorized_imgs = []
     for i in range(L.shape[0]):
