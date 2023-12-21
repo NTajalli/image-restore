@@ -79,7 +79,7 @@ class GeneratorUNet(nn.Module):
         super(GeneratorUNet, self).__init__()
 
         # Downsampling
-        self.down1 = UNetDown(3, 64, normalize=False)
+        self.down1 = UNetDown(1, 64, normalize=False)
         self.down2 = UNetDown(64, 128)
         self.down3 = UNetDown(128, 256)
         self.down4 = UNetDown(256, 512, dropout=0.5)
