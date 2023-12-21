@@ -81,19 +81,26 @@ def lab_to_rgb(L, ab):
     L = (L + 1.) * 50.  # Rescale L channel to [0, 100]
     ab = ab * 110.  # Rescale ab channels to [-128, 127]
 
-    # Initialize a list to hold the RGB images
     colorized_images = []
 
-    # Process each image in the batch
     for i in range(L.shape[0]):
-        Lab_img = np.stack((L[i].cpu().numpy(), ab[i][0].cpu().numpy(), ab[i][1].cpu().numpy()), axis=-1)
+        L_img = L[i].cpu().numpy()
+        ab_img = ab[i].cpu().numpy()
+
+        # Make sure the L channel has the same shape as the ab channels
+        L_img = np.expand_dims(L_img, axis=0)  # Add an extra dimension
+
+        # Stack L and ab channels
+        Lab_img = np.vstack((L_img, ab_img)).transpose(1, 2, 0)  # Rearrange dimensions to HxWxC
+
+        # Convert Lab to RGB
         rgb_img = lab2rgb(Lab_img)
 
         # Convert the RGB image to a tensor and add to the list
         colorized_images.append(torch.from_numpy(rgb_img).permute(2, 0, 1))
 
-    # Stack the list of tensors into a single tensor
     return torch.stack(colorized_images)
+
      
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
