@@ -21,7 +21,7 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
 
             # Train Generator
             optimizer_G.zero_grad()
-            gen_ab = generator(vintage)
+            gen_ab = generator(L)
 
             # Concatenate L channel with fake ab channels
             fake_images_lab = torch.cat((L, gen_ab), 1)
