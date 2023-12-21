@@ -70,17 +70,25 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
 
 def lab_to_rgb(L, ab):
     """
-    Takes a batch of images
+    Converts an L*a*b* batch of images to RGB.
+    
+    Assumes L is in the range [0, 1] and a, b are in the range [-1, 1].
     """
+    # Denormalize L channel
     L = (L + 1.) * 50.
+    # Denormalize a and b channels
     ab = ab * 110.
+    # Stack to create the L*a*b* image
     Lab = torch.cat([L, ab], dim=1)
     Lab = Lab.detach().cpu().numpy().transpose((0, 2, 3, 1))
-    rgb_imgs = []
-    for img in Lab:
-        img_rgb = cv2.cvtColor(img.astype(np.float32), cv2.COLOR_LAB2RGB)
-        rgb_imgs.append(torch.from_numpy(img_rgb).permute(2, 0, 1))
-    return torch.stack(rgb_imgs, dim=0)
+    # Convert to RGB
+    rgb_imgs = [cv2.cvtColor(lab_img, cv2.COLOR_LAB2RGB) for lab_img in Lab]
+    # Convert numpy arrays to tensors
+    rgb_imgs = torch.from_numpy(np.stack(rgb_imgs, axis=0)).permute(0, 3, 1, 2)
+    # Clip to ensure the values are in the correct range
+    rgb_imgs = torch.clamp(rgb_imgs, 0, 1)
+    return rgb_imgs
+
 
                 
 # Device configuration
