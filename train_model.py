@@ -19,6 +19,11 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Correctly reshape L to ensure it's a 4D tensor
             L = L.squeeze().unsqueeze(1)
 
+            # Initialize 'real' and 'fake' labels
+            patch_size = discriminator(torch.zeros_like(fake_images_lab)).size()[2:]
+            valid = torch.ones((L.size(0), 1, *patch_size), device=device, requires_grad=False)
+            fake = torch.zeros((L.size(0), 1, *patch_size), device=device, requires_grad=False)
+
             # Train Generator
             optimizer_G.zero_grad()
             gen_ab = generator(vintage)
@@ -27,7 +32,7 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             fake_images_lab = torch.cat((L, gen_ab), 1)
 
             # Adversarial and L1 loss
-            g_loss_adv = criterion(discriminator(fake_images_lab), valid.expand_as(discriminator(fake_images_lab)))
+            g_loss_adv = criterion(discriminator(fake_images_lab), valid)
             g_loss_L1 = L1_loss(gen_ab, ab) * L1_lambda
             g_loss = g_loss_adv + g_loss_L1
             g_loss.backward()
@@ -36,8 +41,8 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             # Train Discriminator
             optimizer_D.zero_grad()
             real_images_lab = torch.cat((L, ab), 1)
-            real_loss = criterion(discriminator(real_images_lab), valid.expand_as(discriminator(real_images_lab)))
-            fake_loss = criterion(discriminator(fake_images_lab.detach()), fake.expand_as(discriminator(fake_images_lab)))
+            real_loss = criterion(discriminator(real_images_lab), valid)
+            fake_loss = criterion(discriminator(fake_images_lab.detach()), fake)
             d_loss = (real_loss + fake_loss) / 2
             d_loss.backward()
             optimizer_D.step()
@@ -50,6 +55,7 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             if batches_done % 10 == 0:
                 sample_images = torch.cat((vintage.data, gen_ab.data, ab.data), -1)
                 save_image(sample_images, f"images/{batches_done}.png", nrow=5, normalize=True)
+
 
 
 # Device configuration
