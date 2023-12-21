@@ -16,8 +16,12 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             ab = data['ab'].to(device)  # Shape: [batch_size, 2, height, width]
             vintage = data['vintage'].to(device)
 
+            print("Shape of L before unsqueeze:", L.shape)  # Debug print
+
             # Ensure L has a single channel and is a 4D tensor
             L = L.unsqueeze(1)  # Shape: [batch_size, 1, height, width]
+
+            print("Shape of L after unsqueeze:", L.shape)  # Debug print
 
             # Adversarial ground truths
             valid = torch.ones((L.size(0), 1), device=device, requires_grad=False)
@@ -27,8 +31,16 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             optimizer_G.zero_grad()
             gen_ab = generator(vintage)  # Shape: [batch_size, 2, height, width]
 
+            print("Shape of gen_ab:", gen_ab.shape)  # Debug print
+
             # Concatenate L channel with fake ab channels
-            fake_images_lab = torch.cat((L, gen_ab), 1)
+            try:
+                fake_images_lab = torch.cat((L, gen_ab), 1)
+            except RuntimeError as e:
+                print("Error during concatenation:", e)
+                print("Shape of L:", L.shape)
+                print("Shape of gen_ab:", gen_ab.shape)
+                raise e
 
             # Adversarial and L1 loss
             g_loss_adv = criterion(discriminator(fake_images_lab), valid)
@@ -54,7 +66,6 @@ def train(generator, discriminator, dataloader, optimizer_G, optimizer_D, criter
             if batches_done % 10 == 0:
                 sample_images = torch.cat((vintage.data, gen_ab.data, ab.data), -1)
                 save_image(sample_images, f"images/{batches_done}.png", nrow=5, normalize=True)
-
 
 # Device configuration
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
