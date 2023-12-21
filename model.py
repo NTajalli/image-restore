@@ -67,7 +67,7 @@ class UnetBlock(nn.Module):
         downconv = nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
         downrelu = nn.LeakyReLU(0.2, True)
         uprelu = nn.ReLU(True)
-        upnorm = nn.BatchNorm2d(out_channels)
+        upnorm = nn.BatchNorm2d(out_channels * 2)  # Notice the change here
 
         if outermost:
             upconv = nn.ConvTranspose2d(out_channels * 2, out_channels, kernel_size=4, stride=2, padding=1)
@@ -75,12 +75,12 @@ class UnetBlock(nn.Module):
             up = [uprelu, upconv, nn.Tanh()]
             model = down + [submodule] + up
         elif innermost:
-            upconv = nn.ConvTranspose2d(out_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
+            upconv = nn.ConvTranspose2d(out_channels, out_channels * 2, kernel_size=4, stride=2, padding=1, bias=False)
             down = [downrelu, downconv]
             up = [uprelu, upconv, upnorm]
             model = down + up
         else:
-            upconv = nn.ConvTranspose2d(out_channels * 2, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
+            upconv = nn.ConvTranspose2d(out_channels * 2, out_channels * 2, kernel_size=4, stride=2, padding=1, bias=False)
             down = [downrelu, downconv, nn.BatchNorm2d(out_channels)]
             up = [uprelu, upconv, upnorm]
             if use_dropout:
@@ -90,7 +90,11 @@ class UnetBlock(nn.Module):
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
-        print(f"UnetBlock - Input shape: {x.shape}")
+        if self.outermost:
+            return self.model(x)
+        else:
+            return torch.cat([x, self.model(x)], 1)
+
         
         if self.outermost:
             output = self.model(x)
