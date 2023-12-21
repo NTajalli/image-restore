@@ -73,7 +73,7 @@ optimizer_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))
 optimizer_D = optim.Adam(discriminator.parameters(), lr=lr, betas=(0.5, 0.999))
 
 # Loss functions
-criterion = nn.BCELoss()
+criterion = nn.BCEWithLogitsLoss()
 L1_loss = nn.L1Loss()
 
 # Dataset and DataLoader
