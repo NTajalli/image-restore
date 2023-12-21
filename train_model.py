@@ -73,24 +73,35 @@ def lab_to_rgb(L, ab):
     Converts a batch of images from L*a*b* color space to RGB.
     Assumes L is in the range [0, 1] and a, b are in the range [-1, 1] if they were normalized.
     """
+    # Print the range of L, a, and b channels before denormalization
+    print(f"L channel range before scaling: min {L.min()}, max {L.max()}")
+    print(f"ab channels range before scaling: min {ab.min()}, max {ab.max()}")
+
     L = (L * 100)  # Assuming L is in range [0, 1], scale to [0, 100]
     ab = (ab + 1) * 127.5  # Assuming a, b are in range [-1, 1], scale to [0, 255]
-    
+
     # Stack to create the L*a*b* image
     Lab = torch.cat([L, ab], dim=1)
     
     # Transfer to CPU if not already and convert to numpy
     Lab = Lab.detach().cpu().permute(0, 2, 3, 1).numpy()
-    
+
     # Convert to RGB
     rgb_imgs = [cv2.cvtColor(lab_img.astype(np.float32), cv2.COLOR_LAB2BGR) for lab_img in Lab]
     rgb_imgs = np.stack(rgb_imgs, axis=0)
     
+    # Print the range of RGB values
+    print(f"RGB images range: min {rgb_imgs.min()}, max {rgb_imgs.max()}")
+
     # Convert numpy arrays to tensors and permute back to BxCxHxW
     rgb_imgs = torch.from_numpy(rgb_imgs).permute(0, 3, 1, 2)
     
     # Clip to ensure the values are in the correct range and convert to float
     rgb_imgs = torch.clamp(rgb_imgs, 0, 255) / 255.0
+
+    # Print the final range of RGB values after clamping
+    print(f"RGB tensor range after clamping: min {rgb_imgs.min()}, max {rgb_imgs.max()}")
+
     return rgb_imgs
 
 
