@@ -121,7 +121,7 @@ L1_lambda = 100  # Weight for L1 loss
 
 # Initialize models
 generator = GeneratorUNet()
-discriminator = Discriminator()
+discriminator = PatchDiscriminator()
 
 # Optimizers
 optimizer_G = optim.Adam(generator.parameters(), lr=lr, betas=(0.5, 0.999))

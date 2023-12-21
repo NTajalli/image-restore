@@ -60,58 +60,56 @@ class CustomImageDataset(Dataset):
 
         return {'L': L, 'ab': ab, 'vintage': vintage_image}
 
+class UnetBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, submodule=None, outermost=False, innermost=False, use_dropout=False):
+        super(UnetBlock, self).__init__()
+        self.outermost = outermost
+        downconv = nn.Conv2d(in_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
+        downrelu = nn.LeakyReLU(0.2, True)
+        uprelu = nn.ReLU(True)
+        upnorm = nn.BatchNorm2d(out_channels)
 
-class UNetDown(nn.Module):
-    def __init__(self, in_size, out_size, normalize=True, dropout=0.0):
-        super(UNetDown, self).__init__()
-        layers = [nn.Conv2d(in_size, out_size, 4, 2, 1, bias=False)]
-        if normalize:
-            layers.append(nn.BatchNorm2d(out_size))
-        layers.append(nn.LeakyReLU(0.2))
-        if dropout:
-            layers.append(nn.Dropout(dropout))
-        self.model = nn.Sequential(*layers)
+        if outermost:
+            upconv = nn.ConvTranspose2d(out_channels * 2, out_channels, kernel_size=4, stride=2, padding=1)
+            down = [downconv]
+            up = [uprelu, upconv, nn.Tanh()]
+            model = down + [submodule] + up
+        elif innermost:
+            upconv = nn.ConvTranspose2d(out_channels, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
+            down = [downrelu, downconv]
+            up = [uprelu, upconv, upnorm]
+            model = down + up
+        else:
+            upconv = nn.ConvTranspose2d(out_channels * 2, out_channels, kernel_size=4, stride=2, padding=1, bias=False)
+            down = [downrelu, downconv, nn.BatchNorm2d(out_channels)]
+            up = [uprelu, upconv, upnorm]
+            if use_dropout:
+                up += [nn.Dropout(0.5)]
+            model = down + [submodule] + up
+
+        self.model = nn.Sequential(*model)
+
+    def forward(self, x):
+        if self.outermost:
+            return self.model(x)
+        else:  # add skip connections
+            return torch.cat([x, self.model(x)], 1)
+
+class GeneratorUNet(nn.Module):
+    def __init__(self, input_channels=1, output_channels=2):
+        super(GeneratorUNet, self).__init__()
+
+        # Construct U-Net structure
+        unet_block = UnetBlock(512, 512, innermost=True)  # Innermost layer
+        unet_block = UnetBlock(512, 512, submodule=unet_block, use_dropout=True)  # Middle layers
+        unet_block = UnetBlock(512, 512, submodule=unet_block, use_dropout=True)
+        unet_block = UnetBlock(256, 512, submodule=unet_block)
+        unet_block = UnetBlock(128, 256, submodule=unet_block)
+        unet_block = UnetBlock(64, 128, submodule=unet_block)
+        self.model = UnetBlock(output_channels, 64, submodule=unet_block, outermost=True)
 
     def forward(self, x):
         return self.model(x)
-
-class UNetUp(nn.Module):
-    def __init__(self, in_size, out_size, dropout=0.0):
-        super(UNetUp, self).__init__()
-        layers = [
-            nn.ConvTranspose2d(in_size, out_size, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(out_size),
-            nn.ReLU(inplace=True),
-        ]
-        if dropout:
-            layers.append(nn.Dropout(dropout))
-        self.model = nn.Sequential(*layers)
-
-    def forward(self, x, skip_input):
-        x = self.model(x)
-        x = torch.cat((x, skip_input), 1)
-        return x
-
-class GeneratorUNet(nn.Module): 
-    def __init__(self):
-        super(GeneratorUNet, self).__init__()
-
-        # Downsampling
-        self.down1 = UNetDown(1, 64, normalize=False)  # Changed input channels to 1
-        self.down2 = UNetDown(64, 128)
-        self.down3 = UNetDown(128, 256)
-        self.down4 = UNetDown(256, 512, dropout=0.5)
-        # Upsampling
-        self.up1 = UNetUp(512, 256, dropout=0.5)
-        self.up2 = UNetUp(256 * 2, 128, dropout=0.5)
-        self.up3 = UNetUp(128 * 2, 64)
-
-        self.final = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(64 * 2, 2, 4, padding=1),  # Changed output channels to 2
-            nn.Tanh(),
-        )
 
     def forward(self, x):
         # U-Net generator with skip connections from encoder to decoder
@@ -126,28 +124,33 @@ class GeneratorUNet(nn.Module):
         
         return self.final(u3)
 
-class Discriminator(nn.Module):
-    def __init__(self):
-        super(Discriminator, self).__init__()
+class PatchDiscriminator(nn.Module):
+    def __init__(self, input_channels, num_filters=64, num_layers=3):
+        super(PatchDiscriminator, self).__init__()
 
-        def discriminator_block(in_filters, out_filters, normalization=True):
-            """Returns downsampling layers of each discriminator block"""
-            layers = [nn.Conv2d(in_filters, out_filters, 4, stride=2, padding=1)]
-            if normalization:
-                layers.append(nn.BatchNorm2d(out_filters))
-            layers.append(nn.LeakyReLU(0.2, inplace=True))
-            return layers
+        layers = [self.get_layers(input_channels, num_filters, norm=False)]
+        out_filters = num_filters
 
-        self.model = nn.Sequential(
-            *discriminator_block(3, 64, normalization=False),  # Changed to 3-channel input
-            *discriminator_block(64, 128),
-            *discriminator_block(128, 256),
-            *discriminator_block(256, 512),
-            nn.ZeroPad2d((1, 0, 1, 0)),
-            nn.Conv2d(512, 1, 4, padding=1)  # Output is a matrix of scores
-        )
+        for i in range(1, num_layers):
+            in_filters = out_filters
+            out_filters = num_filters * (2 ** i)
+            if i == num_layers - 1:  # Last layer
+                layers += [self.get_layers(in_filters, out_filters, s=1, norm=True)]
+            else:
+                layers += [self.get_layers(in_filters, out_filters, s=2, norm=True)]
 
-    def forward(self, img):
-        return self.model(img)
+        layers += [self.get_layers(out_filters, 1, s=1, norm=False, act=False)]  # Output layer
 
+        self.model = nn.Sequential(*layers)
+
+    def get_layers(self, in_filters, out_filters, k=4, s=2, p=1, norm=True, act=True):
+        layers = [nn.Conv2d(in_filters, out_filters, k, s, p, bias=not norm)]
+        if norm:
+            layers += [nn.BatchNorm2d(out_filters)]
+        if act:
+            layers += [nn.LeakyReLU(0.2, inplace=True)]
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
 
