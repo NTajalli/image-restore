@@ -30,7 +30,7 @@ def train_model(model, train_dl, val_dl, epochs, display_every=200, snapshot_pat
                 print(f"\nEpoch {e+1}/{epochs}")
                 print(f"Iteration {i}/{len(train_dl)}")
                 log_results(loss_meter_dict) # function to print out the losses
-                visualize(model, data, save=False) # function displaying the model's outputs
+                visualize(model, data) # function displaying the model's outputs
                 
                 # Save model snapshots
                 snapshot_filename = f"model_epoch_{e+1}_iter_{i}.pth"
