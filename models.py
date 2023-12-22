@@ -135,7 +135,7 @@ class MainModel(nn.Module):
 
     def setup_input(self, data):
         self.L = data['vintage'].to(self.device)  # Use the vintage image as input to G
-        self.ab = data['color'].to(self.device)
+        self.ab = data['ab'].to(self.device)
 
     def forward(self):
         self.fake_color = self.net_G(self.L)

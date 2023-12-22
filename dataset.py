@@ -45,4 +45,4 @@ class CustomImageDataset(Dataset):
         L = torch.from_numpy(L).unsqueeze(0).float()
         ab = torch.from_numpy(ab).permute(2, 0, 1).float()
 
-        return {'L': L, 'ab': ab, 'vintage': vintage_image}
+        return {'vintage': vintage_image, 'color': color_image, 'L': L, 'ab': ab}
