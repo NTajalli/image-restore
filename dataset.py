@@ -28,19 +28,8 @@ class CustomImageDataset(Dataset):
 
         # Apply transformations
         if self.transform:
-            if self.is_train:
-                # Apply the same random transformation to both vintage and color images
-                seed = np.random.randint(2147483647)
-                np.random.seed(seed)
-                torch.manual_seed(seed)
-                vintage_image = self.transform(vintage_image)
-
-                np.random.seed(seed)
-                torch.manual_seed(seed)
-                color_image = self.transform(color_image)
-            else:
-                vintage_image = self.transform(vintage_image)
-                color_image = self.transform(color_image)
+            vintage_image = self.transform(vintage_image)
+            color_image = self.transform(color_image)
 
         # Convert color image to Lab color space
         color_image_np = np.array(color_image)
