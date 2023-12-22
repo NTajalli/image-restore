@@ -3,7 +3,7 @@
 from dataset import *
 from models import MainModel
 from utils import *
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 def train_val_split(vintage_dir, val_split=0.2):
     filenames = [f for f in os.listdir(vintage_dir) if os.path.isfile(os.path.join(vintage_dir, f))]
