@@ -134,7 +134,7 @@ class MainModel(nn.Module):
             p.requires_grad = requires_grad
 
     def setup_input(self, data):
-        self.L = data['vintage'].to(self.device)  # Use the vintage image as input to G
+        self.L = data['L'].to(self.device)  # Use the vintage image as input to G
         self.ab = data['ab'].to(self.device)
 
     def forward(self):
