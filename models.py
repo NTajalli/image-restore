@@ -65,18 +65,18 @@ class UnetBlock(nn.Module):
     def forward(self, x):
         if self.outermost:
             out = self.model(x)
-            print(f"Outermost: Input shape: {x.shape}, Output shape: {out.shape}")
+            # print(f"Outermost: Input shape: {x.shape}, Output shape: {out.shape}")
             return out
         else:
             down = self.model(x)
-            print(f"Down: Input shape: {x.shape}, Output shape: {down.shape}")
+            # print(f"Down: Input shape: {x.shape}, Output shape: {down.shape}")
             if self.use_attention:
                 attn = self.attention(down)
-                print(f"Attention: Input shape: {down.shape}, Output shape: {attn.shape}")
+                # print(f"Attention: Input shape: {down.shape}, Output shape: {attn.shape}")
                 out = torch.cat([x, attn], 1)
             else:
                 out = torch.cat([x, down], 1)
-            print(f"Concat: Input shape: {x.shape}, Down/Attn shape: {down.shape}, Output shape: {out.shape}")
+            # print(f"Concat: Input shape: {x.shape}, Down/Attn shape: {down.shape}, Output shape: {out.shape}")
             return out
 
 
