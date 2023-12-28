@@ -40,7 +40,7 @@ os.makedirs(original_dir, exist_ok=True)
 os.makedirs(vintage_dir, exist_ok=True)
 
 # Define the number of samples you want to download from each split
-max_samples_per_split = 6000  # Adjust this number based on your requirement
+max_samples_per_split = 8000  # Adjust this number based on your requirement
 
 # Download and process a subset of COCO dataset
 splits = ["train", "validation", "test"]
