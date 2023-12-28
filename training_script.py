@@ -1,5 +1,3 @@
-
-
 from dataset import *
 from models import MainModel
 from utils import *
@@ -32,11 +30,12 @@ def train_model(model, train_dl, val_dl, epochs, display_every=200, snapshot_pat
                 log_results(loss_meter_dict) # function to print out the losses
                 visualize(model, data) # function displaying the model's outputs
                 
-                # Save model snapshots
-                snapshot_filename = f"model_epoch_{e+1}_iter_{i}.pth"
-                snapshot_filepath = os.path.join(snapshot_path, snapshot_filename)
-                torch.save(model.state_dict(), snapshot_filepath)
-                print(f"Saved model snapshot to {snapshot_filepath}")
+                if (e % 10 == 0):
+                    # Save model snapshots
+                    snapshot_filename = f"model_epoch_{e+1}_iter_{i}.pth"
+                    snapshot_filepath = os.path.join(snapshot_path, snapshot_filename)
+                    torch.save(model.state_dict(), snapshot_filepath)
+                    print(f"Saved model snapshot to {snapshot_filepath}")
 
 vintage_dir = './vintage_images'
 color_dir = './downloaded_images'
