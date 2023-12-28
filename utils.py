@@ -81,7 +81,7 @@ def visualize(model, data, save=True):
         ax.axis("off")
     plt.show()
     if save:
-        fig.savefig(f"colorization_{time.time()}.png")
+        fig.savefig(f"colorizationATTENTION_{time.time()}.png")
 
 
 def log_results(loss_meter_dict):
