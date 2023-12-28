@@ -15,7 +15,7 @@ def train_val_split(vintage_dir, val_split=0.2):
     return train_filenames, val_filenames
 
 
-def train_model(model, train_dl, val_dl, epochs, display_every=200, snapshot_path='./model_snapshots'):
+def train_model(model, train_dl, val_dl, epochs, display_every=200, snapshot_path='./model_snapshotsSELFATTENTION'):
     data = next(iter(val_dl)) # getting a batch for visualizing the model output after fixed intrvals
     os.makedirs(snapshot_path, exist_ok=True)
     for e in range(epochs):

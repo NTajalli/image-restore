@@ -2,9 +2,31 @@ import torch
 from torch import nn, optim
 from loss import GANLoss
 
+class SelfAttention(nn.Module):
+    def __init__(self, in_channels):
+        super(SelfAttention, self).__init__()
+        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels, in_channels, kernel_size=1)
+        self.softmax = nn.Softmax(dim=-2)  # Softmax over height*width dimension
+
+    def forward(self, x):
+        batch, C, height, width = x.size()
+        query = self.query_conv(x).view(batch, -1, width * height).permute(0, 2, 1)
+        key = self.key_conv(x).view(batch, -1, width * height)
+        value = self.value_conv(x).view(batch, -1, width * height)
+
+        attention = torch.bmm(query, key)  # Batch matrix-matrix product
+        attention = self.softmax(attention)
+
+        out = torch.bmm(value, attention.permute(0, 2, 1))
+        out = out.view(batch, C, height, width)
+        return out + x  # Add skip connection
+
+
 class UnetBlock(nn.Module):
     def __init__(self, nf, ni, submodule=None, input_c=None, dropout=False,
-                 innermost=False, outermost=False):
+                 innermost=False, outermost=False, use_attention=False):
         super().__init__()
         self.outermost = outermost
         if input_c is None: input_c = nf
@@ -14,6 +36,10 @@ class UnetBlock(nn.Module):
         downnorm = nn.BatchNorm2d(ni)
         uprelu = nn.ReLU(True)
         upnorm = nn.BatchNorm2d(nf)
+        
+        self.use_attention = use_attention
+        if self.use_attention:
+            self.attention = SelfAttention(ni)
 
         if outermost:
             upconv = nn.ConvTranspose2d(ni * 2, nf, kernel_size=4,
@@ -40,13 +66,13 @@ class UnetBlock(nn.Module):
         if self.outermost:
             return self.model(x)
         else:
-            return torch.cat([x, self.model(x)], 1)
+            return self.attention(x) if self.use_attention else x
 
 
 class Unet(nn.Module):
     def __init__(self, input_c=1, output_c=2, n_down=8, num_filters=64):
         super().__init__()
-        unet_block = UnetBlock(num_filters * 8, num_filters * 8, innermost=True)
+        unet_block = UnetBlock(num_filters * 8, num_filters * 8, innermost=True, use_attention=True)
         for _ in range(n_down - 5):
             unet_block = UnetBlock(num_filters * 8, num_filters * 8, submodule=unet_block, dropout=True)
         out_filters = num_filters * 8
