@@ -69,8 +69,7 @@ class UnetBlock(nn.Module):
             down = self.model(x)
             if self.use_attention:
                 concatenated = torch.cat([x, down], 1)
-                # Adjust the SelfAttention layer to handle the concatenated number of channels
-                self.attention = SelfAttention(concatenated.size(1))
+                self.attention = SelfAttention(concatenated.size(1)).to(x.device)  # Move to the same device as x
                 attn = self.attention(concatenated)
                 return attn
             else:
