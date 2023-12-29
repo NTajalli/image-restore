@@ -68,7 +68,10 @@ class UnetBlock(nn.Module):
         else:
             down = self.model(x)
             if self.use_attention:
-                attn = self.attention(torch.cat([x, down], 1))  # Apply attention after concatenation
+                concatenated = torch.cat([x, down], 1)
+                # Adjust the SelfAttention layer to handle the concatenated number of channels
+                self.attention = SelfAttention(concatenated.size(1))
+                attn = self.attention(concatenated)
                 return attn
             else:
                 return torch.cat([x, down], 1)
