@@ -41,7 +41,7 @@ class UnetBlock(nn.Module):
         
         self.use_attention = use_attention
         if self.use_attention:
-            self.attention = SelfAttention(ni)
+            self.attention = SelfAttention(2 * ni)
 
         if outermost:
             upconv = nn.ConvTranspose2d(ni * 2, nf, kernel_size=4,
@@ -70,19 +70,19 @@ class UnetBlock(nn.Module):
         print(f"Downsampled shape: {down.shape}")
 
         if self.outermost:
-            return down  # No concatenation for the outermost layer
+            # In the outermost layer, we don't concatenate the skip connection
+            return down
         else:
             if self.use_attention:
-                # Apply attention to concatenated features
-                down = torch.cat([x, down], 1)  # Concatenation
-                print(f"Before attention shape: {down.shape}")
+                # Apply attention
                 down = self.attention(down)  # Apply attention
                 print(f"After attention shape: {down.shape}")
-            
+
             # Concatenate with skip connection
             out = torch.cat([x, down], 1)
             print(f"Concatenated shape: {out.shape}")
             return out
+
 
 
 
