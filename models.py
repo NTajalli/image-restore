@@ -1,6 +1,8 @@
 import torch
 from torch import nn, optim
 from loss import GANLoss
+from torchvision.models import vgg16
+import torch.nn.functional as F
 
 class SelfAttention(nn.Module):
     def __init__(self, in_channels):
@@ -67,13 +69,10 @@ class UnetBlock(nn.Module):
             return self.model(x)
         else:
             down = self.model(x)
-            if self.use_attention:
-                concatenated = torch.cat([x, down], 1)
-                self.attention = SelfAttention(concatenated.size(1)).to(x.device)  # Move to the same device as x
-                attn = self.attention(concatenated)
-                return attn
-            else:
-                return torch.cat([x, down], 1)
+            if self.attention is not None:
+                # Apply attention to concatenated features
+                down = self.attention(torch.cat([x, down], 1))
+            return torch.cat([x, down], 1)
 
 
 class Unet(nn.Module):
@@ -112,8 +111,27 @@ class PatchDiscriminator(nn.Module):
         if act: layers += [nn.LeakyReLU(0.2, True)]
         return nn.Sequential(*layers)
 
-    def forward(self, x):
-        return self.model(x)
+    def forward(self, x, feature_matching=False, feature_matching_layers = [1, 4]):
+        features = []
+        for i, layer in enumerate(self.model):
+            x = layer(x)
+            if feature_matching and i in feature_matching_layers:  # feature_matching_layers is a list of layer indices you want to use for feature matching
+                features.append(x)
+        return (x, features) if feature_matching else x
+    
+class PerceptualLoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        vgg = vgg16(pretrained=True).features
+        self.model = nn.Sequential(*list(vgg.children())[:16])  # Using only the first few layers
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+    def forward(self, fake_img, real_img):
+        fake_features = self.model(fake_img)
+        real_features = self.model(real_img)
+        return F.l1_loss(fake_features, real_features)
+
 
 
 def init_weights(net, init='norm', gain=0.02):
@@ -145,12 +163,14 @@ def init_model(model, device):
 
 
 class MainModel(nn.Module):
-    def __init__(self, net_G=None, lr_G=2e-4, lr_D=2e-4,
-                 beta1=0.5, beta2=0.999, lambda_L1=100.):
+    def __init__(self, net_G=None, lr_G=2e-4, lr_D=2e-4, beta1=0.5, beta2=0.999, lambda_L1=100., lambda_FM=10., lambda_perceptual=0.1):
         super().__init__()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.lambda_L1 = lambda_L1
+        self.lambda_FM = lambda_FM
+        self.lambda_perceptual = lambda_perceptual
+        self.perceptual_loss = PerceptualLoss().to(self.device)
 
         if net_G is None:
             self.net_G = init_model(Unet(input_c=1, output_c=2, n_down=8, num_filters=64), self.device)
@@ -188,7 +208,16 @@ class MainModel(nn.Module):
         fake_preds = self.net_D(fake_image)
         self.loss_G_GAN = self.GANcriterion(fake_preds, True)
         self.loss_G_L1 = self.L1criterion(self.fake_color, self.ab) * self.lambda_L1
-        self.loss_G = self.loss_G_GAN + self.loss_G_L1
+        # Perceptual loss
+        real_image = torch.cat([self.L, self.ab], dim=1)
+        self.loss_G_perceptual = self.perceptual_loss(self.fake_color, real_image) * self.lambda_perceptual
+        
+        # Feature matching loss
+        _, fake_features = self.net_D(torch.cat([self.L, self.fake_color], dim=1), feature_matching=True)
+        _, real_features = self.net_D(torch.cat([self.L, self.ab], dim=1), feature_matching=True)
+        self.loss_G_FM = sum(F.l1_loss(f_fake, f_real) for f_fake, f_real in zip(fake_features, real_features)) * self.lambda_FM
+
+        self.loss_G = self.loss_G_GAN + self.loss_G_L1 + self.loss_G_perceptual + self.loss_G_FM
         self.loss_G.backward()
 
     def optimize(self):
