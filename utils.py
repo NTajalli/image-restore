@@ -42,14 +42,19 @@ def update_losses(model, loss_meter_dict, count):
         loss_meter.update(loss.item(), count=count)
 
 
-def lab_to_rgb(L, ab):
+def lab_to_rgb(L, ab, is_tensor=False):
     """
     Takes a batch of images
     """
 
     L = (L + 1.) * 50.
     ab = ab * 110.
-    Lab = torch.cat([L, ab], dim=1).permute(0, 2, 3, 1).cpu().numpy()
+    
+    if is_tensor:
+        Lab = torch.cat([L, ab], dim=1).permute(0, 2, 3, 1).cpu().detach().numpy()
+    else:
+        Lab = torch.cat([L, ab], dim=1).permute(0, 2, 3, 1).cpu().numpy()
+        
     rgb_imgs = []
     for img in Lab:
         img_rgb = lab2rgb(img)
