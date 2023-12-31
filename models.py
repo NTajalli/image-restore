@@ -41,7 +41,7 @@ class UnetBlock(nn.Module):
         
         self.use_attention = use_attention
         if self.use_attention:
-            self.attention = SelfAttention(ni)
+            self.attention = SelfAttention(2 * ni)
 
         if outermost:
             upconv = nn.ConvTranspose2d(ni * 2, nf, kernel_size=4,
@@ -69,10 +69,13 @@ class UnetBlock(nn.Module):
             return self.model(x)
         else:
             down = self.model(x)
-            if self.attention is not None:
+            if self.use_attention:
                 # Apply attention to concatenated features
-                down = self.attention(torch.cat([x, down], 1))
-            return torch.cat([x, down], 1)
+                attn = self.attention(torch.cat([x, down], 1))  # Concatenates along the channel dimension
+                return torch.cat([x, attn], 1)  # Concatenate the skip-connection
+            else:
+                return torch.cat([x, down], 1)
+
 
 
 class Unet(nn.Module):
