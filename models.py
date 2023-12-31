@@ -140,13 +140,8 @@ class PerceptualLoss(nn.Module):
             param.requires_grad = False
 
     def forward(self, fake_img, real_img):
-        # Convert L*a*b images to RGB
-        fake_rgb = lab_to_rgb(fake_img[:, :1, :, :], fake_img[:, 1:, :, :], is_tensor=True)
-        real_rgb = lab_to_rgb(real_img[:, :1, :, :], real_img[:, 1:, :, :], is_tensor=True)
-
-        # Compute perceptual loss using RGB images
-        fake_features = self.model(fake_rgb)
-        real_features = self.model(real_rgb)
+        fake_features = self.model(fake_img)
+        real_features = self.model(real_img)
         return F.l1_loss(fake_features, real_features)
 
 
@@ -226,8 +221,19 @@ class MainModel(nn.Module):
         self.loss_G_GAN = self.GANcriterion(fake_preds, True)
         self.loss_G_L1 = self.L1criterion(self.fake_color, self.ab) * self.lambda_L1
         # Perceptual loss
-        real_image = torch.cat([self.L, self.ab], dim=1)
-        self.loss_G_perceptual = self.perceptual_loss(self.fake_color, real_image) * self.lambda_perceptual
+        fake_lab = torch.cat([self.L, self.fake_color], dim=1)
+        real_lab = torch.cat([self.L, self.ab], dim=1)
+
+        # Convert L*a*b to RGB
+        fake_rgb_np = lab_to_rgb(fake_lab[:, :1, :, :], fake_lab[:, 1:, :, :], is_tensor=True)
+        real_rgb_np = lab_to_rgb(real_lab[:, :1, :, :], real_lab[:, 1:, :, :], is_tensor=True)
+
+        # Convert NumPy arrays back to PyTorch tensors
+        fake_rgb = torch.from_numpy(fake_rgb_np).permute(0, 3, 1, 2).to(self.device).float()
+        real_rgb = torch.from_numpy(real_rgb_np).permute(0, 3, 1, 2).to(self.device).float()
+
+        # Compute the perceptual loss using RGB images
+        self.loss_G_perceptual = self.perceptual_loss(fake_rgb, real_rgb) * self.lambda_perceptual
         
         # Feature matching loss
         _, fake_features = self.net_D(torch.cat([self.L, self.fake_color], dim=1), feature_matching=True)
@@ -236,6 +242,7 @@ class MainModel(nn.Module):
 
         self.loss_G = self.loss_G_GAN + self.loss_G_L1 + self.loss_G_perceptual + self.loss_G_FM
         self.loss_G.backward()
+        
 
     def optimize(self):
         self.forward()
