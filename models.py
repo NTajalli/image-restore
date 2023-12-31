@@ -3,7 +3,8 @@ from torch import nn, optim
 from loss import GANLoss
 from torchvision.models import vgg16
 import torch.nn.functional as F
-from utils import lab_to_rgb
+from utils import lab_to_rgb, visualize_rgb
+from random import random
 
 class SelfAttention(nn.Module):
     def __init__(self, in_channels):
@@ -228,9 +229,14 @@ class MainModel(nn.Module):
         # Convert NumPy arrays back to PyTorch tensors
         fake_rgb = torch.from_numpy(fake_rgb_np).permute(0, 3, 1, 2).to(self.device).float()
         real_rgb = torch.from_numpy(real_rgb_np).permute(0, 3, 1, 2).to(self.device).float()
+        
+        if random.random() < 0.1:  # 10% chance to save
+            visualize_rgb(fake_rgb, real_rgb, save=True, filename_suffix='perceptual_loss_check')
+
 
         # Compute the perceptual loss using RGB images
         self.loss_G_perceptual = self.perceptual_loss(fake_rgb, real_rgb) * self.lambda_perceptual
+        
         
         # Feature matching loss
         _, fake_features = self.net_D(torch.cat([self.L, self.fake_color], dim=1), feature_matching=True)
