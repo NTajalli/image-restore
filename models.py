@@ -139,8 +139,13 @@ class PerceptualLoss(nn.Module):
             param.requires_grad = False
 
     def forward(self, fake_img, real_img):
-        fake_features = self.model(fake_img)
-        real_features = self.model(real_img)
+        # Convert L*a*b images to RGB
+        fake_rgb = self.lab_to_rgb(fake_img[:, :1, :, :], fake_img[:, 1:, :, :])
+        real_rgb = self.lab_to_rgb(real_img[:, :1, :, :], real_img[:, 1:, :, :])
+
+        # Compute perceptual loss using RGB images
+        fake_features = self.model(fake_rgb)
+        real_features = self.model(real_rgb)
         return F.l1_loss(fake_features, real_features)
 
 
