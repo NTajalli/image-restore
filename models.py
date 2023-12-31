@@ -41,7 +41,7 @@ class UnetBlock(nn.Module):
         
         self.use_attention = use_attention
         if self.use_attention:
-            self.attention = SelfAttention(2 * ni)
+            self.attention = SelfAttention(ni)
 
         if outermost:
             upconv = nn.ConvTranspose2d(ni * 2, nf, kernel_size=4,
