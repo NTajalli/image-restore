@@ -3,6 +3,7 @@ from torch import nn, optim
 from loss import GANLoss
 from torchvision.models import vgg16
 import torch.nn.functional as F
+from utils import lab_to_rgb
 
 class SelfAttention(nn.Module):
     def __init__(self, in_channels):
@@ -140,8 +141,8 @@ class PerceptualLoss(nn.Module):
 
     def forward(self, fake_img, real_img):
         # Convert L*a*b images to RGB
-        fake_rgb = self.lab_to_rgb(fake_img[:, :1, :, :], fake_img[:, 1:, :, :])
-        real_rgb = self.lab_to_rgb(real_img[:, :1, :, :], real_img[:, 1:, :, :])
+        fake_rgb = lab_to_rgb(fake_img[:, :1, :, :], fake_img[:, 1:, :, :])
+        real_rgb = lab_to_rgb(real_img[:, :1, :, :], real_img[:, 1:, :, :])
 
         # Compute perceptual loss using RGB images
         fake_features = self.model(fake_rgb)
