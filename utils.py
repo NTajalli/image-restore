@@ -32,7 +32,6 @@ def create_loss_meters():
 
     return {'loss_D_fake': loss_D_fake,
             'loss_D_real': loss_D_real,
-            'loss_D_perceptual': loss_D_perceptual,
             'loss_D': loss_D,
             'loss_G_GAN': loss_G_GAN,
             'loss_G_L1': loss_G_L1,
