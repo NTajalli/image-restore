@@ -3,7 +3,7 @@ import time
 import numpy as np
 from skimage.color import rgb2lab, lab2rgb
 import matplotlib.pyplot as plt
-
+import warnings
 import torch
 
 
@@ -57,7 +57,9 @@ def lab_to_rgb(L, ab, is_tensor=False):
         
     rgb_imgs = []
     for img in Lab:
-        img_rgb = lab2rgb(img)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            img_rgb = lab2rgb(img)
         rgb_imgs.append(img_rgb)
     return np.stack(rgb_imgs, axis=0)
 

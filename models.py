@@ -68,7 +68,6 @@ class UnetBlock(nn.Module):
     def forward(self, x):
         # Apply downsampling
         down = self.model(x)
-        print(f"Downsampled shape: {down.shape}")
 
         if self.outermost:
             # In the outermost layer, we don't concatenate the skip connection
@@ -77,11 +76,9 @@ class UnetBlock(nn.Module):
             if self.use_attention:
                 # Apply attention
                 down = self.attention(down)  # Apply attention
-                print(f"After attention shape: {down.shape}")
 
             # Concatenate with skip connection
             out = torch.cat([x, down], 1)
-            print(f"Concatenated shape: {out.shape}")
             return out
 
 
