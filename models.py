@@ -4,7 +4,7 @@ from loss import GANLoss
 from torchvision.models import vgg16
 import torch.nn.functional as F
 from utils import lab_to_rgb, visualize_rgb
-from random import random
+import random
 
 class SelfAttention(nn.Module):
     def __init__(self, in_channels):
