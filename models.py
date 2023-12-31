@@ -65,16 +65,24 @@ class UnetBlock(nn.Module):
         self.model = nn.Sequential(*model)
 
     def forward(self, x):
+        # Apply downsampling
+        down = self.model(x)
+        print(f"Downsampled shape: {down.shape}")
+
         if self.outermost:
-            return self.model(x)
+            return down  # No concatenation for the outermost layer
         else:
-            down = self.model(x)
             if self.use_attention:
                 # Apply attention to concatenated features
-                attn = self.attention(torch.cat([x, down], 1))  # Concatenates along the channel dimension
-                return torch.cat([x, attn], 1)  # Concatenate the skip-connection
-            else:
-                return torch.cat([x, down], 1)
+                down = torch.cat([x, down], 1)  # Concatenation
+                print(f"Before attention shape: {down.shape}")
+                down = self.attention(down)  # Apply attention
+                print(f"After attention shape: {down.shape}")
+            
+            # Concatenate with skip connection
+            out = torch.cat([x, down], 1)
+            print(f"Concatenated shape: {out.shape}")
+            return out
 
 
 
