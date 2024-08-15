@@ -25,9 +25,9 @@ This project implements a Generative Adversarial Network (GAN) to restore color 
 
 1. **Clone the repository**:
 
-    `git clone https://github.com/yourusername/colorizing-gan.git`
+    `git clone https://github.com/NTajalli/image-restore.git`
 
-    `cd colorizing-gan`
+    `cd image-restore`
 
 2. **Install dependencies**:
 
@@ -68,17 +68,11 @@ To start the training, run:
 
 `python training_script.py`
 
-The script is designed to be run on an AWS EC2 instance with GPU support to accelerate the training process. It outputs the trained model, loss curves, and sample colorized images.
-
-## Visualization
-
-The project includes tools for visualizing the model's output during training. This is crucial for monitoring progress and ensuring that the model is learning correctly. Visualization can be triggered by running:
-
-`python utils.py --visualize`
+The script is designed to be run on the cloud with GPU support to accelerate the training process. It outputs the trained model, loss curves, and sample colorized images.
 
 ## Results
 
-The GAN can effectively colorize grayscale images, producing outputs that are visually appealing and closely resemble the original color images. The results improve as the model trains, with the adversarial loss driving the generator to produce more realistic colors.
+The GAN can effectively colorize grayscale images, producing outputs that are visually appealing and closely resemble the original color images. The results improve as the model trains, with the adversarial loss driving the generator to produce more realistic colors. It does have some trouble completing capturting complex features and it is only limited to a set size of image. 
 
 ## Conclusion
 
@@ -86,13 +80,9 @@ This project demonstrates the power of GANs in image restoration tasks, specific
 
 ## Future Work
 
-- **Fine-tuning**: Experiment with different architectures, loss functions, and hyperparameters to further improve the quality of colorized images.
+- **Fine-tuning**: Experiment with different architectures, loss functions, and hyperparameters to further improve the quality of colorized images. I tried adding SelfAttention, but so far have been unsuccessful. Hopefully I can experiment and add this optimally. 
 - **Generalization**: Test the model on a wider variety of images to assess its ability to generalize to different styles and content.
 - **Deployment**: Explore deploying the model as a web service or integrating it into an application.
-
-## Acknowledgments
-
-This project was developed using the COCO dataset and trained on AWS EC2 instances. Special thanks to the creators of the datasets and the community that contributes to the development of GANs and related technologies.
 
 ---
 
