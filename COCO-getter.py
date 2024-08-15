@@ -26,7 +26,6 @@ def apply_contrast(image):
     return enhancer.enhance(2)
 
 def apply_noise(image):
-    # Adding random noise
     noise = Image.effect_noise(image.size, 10)
     return ImageChops.add(image, noise, 2, 0)
 
@@ -39,8 +38,7 @@ vintage_dir = './vintage_images'
 os.makedirs(original_dir, exist_ok=True)
 os.makedirs(vintage_dir, exist_ok=True)
 
-# Define the number of samples you want to download from each split
-max_samples_per_split = 8000  # Adjust this number based on your requirement
+max_samples_per_split = 8000  
 
 # Download and process a subset of COCO dataset
 splits = ["train", "validation", "test"]

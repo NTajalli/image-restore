@@ -218,6 +218,7 @@ class MainModel(nn.Module):
         fake_preds = self.net_D(fake_image)
         self.loss_G_GAN = self.GANcriterion(fake_preds, True)
         self.loss_G_L1 = self.L1criterion(self.fake_color, self.ab) * self.lambda_L1
+        
         # Perceptual loss
         fake_lab = torch.cat([self.L, self.fake_color], dim=1)
         real_lab = torch.cat([self.L, self.ab], dim=1)
